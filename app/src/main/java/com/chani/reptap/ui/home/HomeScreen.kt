@@ -1,46 +1,94 @@
 package com.chani.reptap.ui.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.chani.reptap.data.local.entity.WorkoutDay
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel, onDayClick: (WorkoutDay) -> Unit) {
-    val days by viewModel.workoutDays.collectAsState()
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    onStartSession: (WorkoutDay) -> Unit,
+    onViewDetails: (WorkoutDay) -> Unit
+) {
+    val today by viewModel.todayWorkout.collectAsState()
+    val allDays by viewModel.allDays.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    var showDayPicker by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("RepTap") }) }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Box(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentAlignment = Alignment.Center
         ) {
-            items(days) { day ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onDayClick(day) }
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Text(
-                        text = day.name,
-                        modifier = Modifier.padding(20.dp),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    val day = today
+                    if (day == null) {
+                        Text("No workout data found", style = MaterialTheme.typography.titleMedium)
+                    } else if (day.isRecovery) {
+                        Text("No workouts today", style = MaterialTheme.typography.headlineSmall)
+                        Text("Recovery day — enjoy a walk or rest", style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Text(day.name, style = MaterialTheme.typography.headlineSmall)
+
+                        Button(
+                            onClick = { onViewDetails(day) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("View Workout Details")
+                        }
+
+                        Button(
+                            onClick = { onStartSession(day) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Start Session")
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = { showDayPicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Select Workout Day Manually")
+                    }
                 }
             }
         }
+    }
+
+    if (showDayPicker) {
+        AlertDialog(
+            onDismissRequest = { showDayPicker = false },
+            title = { Text("Select a workout day") },
+            text = {
+                Column {
+                    allDays.forEach { d ->
+                        TextButton(onClick = {
+                            viewModel.selectDayManually(d)
+                            showDayPicker = false
+                        }) {
+                            Text(d.name)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDayPicker = false }) { Text("Cancel") }
+            }
+        )
     }
 }

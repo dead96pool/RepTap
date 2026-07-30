@@ -63,8 +63,15 @@ class WorkoutRepository(private val db: AppDatabase) {
         val exMap = exerciseDao.getAllOnce().associateBy { it.name }
         fun ex(name: String) = exMap.getValue(name).id
 
-        val days = listOf("Day 1 - Arms and Shoulders A", "Day 2 - Chest, Back, Legs, Core", "Day 3 - Recovery", "Day 4 - Arms and Shoulders B", "Day 5 - Legs, Chest, Back, Core")
-        dayDao.insertAll(days.mapIndexed { i, name -> WorkoutDay(name = name, dayOrder = i + 1) })
+        val days = listOf(
+            Triple("Day 1 - Arms and Shoulders A", 1, false),
+            Triple("Day 2 - Chest, Back, Legs, Core", 2, false),
+            Triple("Day 3 - Recovery", 3, true),
+            Triple("Day 4 - Arms and Shoulders B", 4, false),
+            Triple("Day 5 - Legs, Chest, Back, Core", 5, false),
+            Triple("Day 6 - Recovery", 6, true)
+        )
+        dayDao.insertAll(days.map { (name, slot, isRecovery) -> WorkoutDay(name = name, slotNumber = slot, isRecovery = isRecovery) })
         val dayMap = dayDao.getAllOnce().associateBy { it.name }
         fun day(name: String) = dayMap.getValue(name).id
 
@@ -74,43 +81,44 @@ class WorkoutRepository(private val db: AppDatabase) {
         val day5 = day("Day 5 - Legs, Chest, Back, Core")
 
         val plan = listOf(
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Alternating supinated dumbbell curl"), orderIndex = 1, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Two-hand overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 4, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Standing dumbbell shoulder press"), orderIndex = 5, targetSets = 3, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 6, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 60),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Alternating supinated dumbbell curl"), orderIndex = 1, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Two-hand overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 4, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Standing dumbbell shoulder press"), orderIndex = 5, targetSets = 2, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 60),
             WorkoutExercise(workoutDayId = day1, exerciseId = ex("Wrist curl"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 45),
             WorkoutExercise(workoutDayId = day1, exerciseId = ex("Reverse wrist curl"), orderIndex = 8, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 0),
 
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Incline push-up"), orderIndex = 1, targetSets = 3, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("One-arm dumbbell row"), orderIndex = 2, targetSets = 3, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Goblet squat"), orderIndex = 3, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 4, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell floor press"), orderIndex = 5, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 90, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Incline push-up"), orderIndex = 1, targetSets = 2, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("One-arm dumbbell row"), orderIndex = 2, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Goblet squat"), orderIndex = 3, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 4, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell floor press"), orderIndex = 5, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 90, restBeforeNextSec = 75),
             WorkoutExercise(workoutDayId = day2, exerciseId = ex("Reverse fly"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 60),
             WorkoutExercise(workoutDayId = day2, exerciseId = ex("Glute bridge"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 68, restBeforeNextSec = 60),
             WorkoutExercise(workoutDayId = day2, exerciseId = ex("Side plank"), orderIndex = 8, targetSets = 2, repRangeMin = 20, repRangeMax = 45, restBetweenSetsSec = 45, restBeforeNextSec = 45),
             WorkoutExercise(workoutDayId = day2, exerciseId = ex("Russian twist, bodyweight"), orderIndex = 9, targetSets = 2, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0),
 
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Seated preacher-style curl"), orderIndex = 1, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Single-dumbbell overhead triceps extension"), orderIndex = 3, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 4, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 5, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over reverse fly"), orderIndex = 6, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Seated preacher-style curl"), orderIndex = 1, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Single-dumbbell overhead triceps extension"), orderIndex = 3, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 4, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 5, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over reverse fly"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 75),
             WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell shrug"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 60),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 8, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 68, restBeforeNextSec = 0),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 8, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 68, restBeforeNextSec = 0),
 
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Split squat"), orderIndex = 1, targetSets = 3, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 105),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bilateral dumbbell Romanian deadlift"), orderIndex = 2, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Split squat"), orderIndex = 1, targetSets = 2, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 105),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bilateral dumbbell Romanian deadlift"), orderIndex = 2, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 90),
             WorkoutExercise(workoutDayId = day5, exerciseId = ex("Slow-tempo sumo squat"), orderIndex = 3, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Push-up variation"), orderIndex = 4, targetSets = 3, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 105, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("One-arm dumbbell row"), orderIndex = 5, targetSets = 3, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Push-up variation"), orderIndex = 4, targetSets = 2, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 105, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("One-arm dumbbell row"), orderIndex = 5, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 90),
             WorkoutExercise(workoutDayId = day5, exerciseId = ex("Dumbbell squeeze floor press"), orderIndex = 6, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Calf raise"), orderIndex = 7, targetSets = 3, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 60),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bent-knee leg raise"), orderIndex = 8, targetSets = 3, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0)
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Calf raise"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 60),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bent-knee leg raise"), orderIndex = 8, targetSets = 2, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0)
         )
         weDao.insertAll(plan)
+        db.cycleStateDao().upsert(CycleState(id = 1, currentSlot = 1))
     }
 }

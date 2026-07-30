@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.chani.reptap.data.local.dao.*
 import com.chani.reptap.data.local.entity.*
 
@@ -14,11 +15,14 @@ import com.chani.reptap.data.local.entity.*
         WorkoutDay::class,
         WorkoutExercise::class,
         SessionLog::class,
-        SetLog::class
+        SetLog::class,
+        CycleState::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
+
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun muscleGroupDao(): MuscleGroupDao
@@ -27,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutExerciseDao(): WorkoutExerciseDao
     abstract fun sessionLogDao(): SessionLogDao
     abstract fun setLogDao(): SetLogDao
+    abstract fun cycleStateDao(): CycleStateDao
 
     companion object {
         @Volatile

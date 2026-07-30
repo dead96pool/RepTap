@@ -8,5 +8,6 @@ data class WorkoutDay(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val dayOrder: Int
+    val slotNumber: Int,
+    val isRecovery: Boolean = false
 )

@@ -14,4 +14,7 @@ interface SessionLogDao {
 
     @Query("SELECT * FROM session_logs ORDER BY startedAt DESC")
     fun getAll(): Flow<List<SessionLog>>
+
+    @Query("SELECT * FROM session_logs WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): SessionLog?
 }

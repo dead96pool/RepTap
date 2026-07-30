@@ -2,6 +2,7 @@ package com.chani.reptap.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -19,7 +20,8 @@ import androidx.room.PrimaryKey
             childColumns = ["exerciseId"],
             onDelete = ForeignKey.RESTRICT
         )
-    ]
+    ],
+    indices = [Index("workoutDayId"), Index("exerciseId")]
 )
 data class WorkoutExercise(
     @PrimaryKey(autoGenerate = true)
