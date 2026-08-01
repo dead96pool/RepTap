@@ -10,6 +10,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -42,8 +45,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             RepTapTheme {
                 val view = androidx.compose.ui.platform.LocalView.current
-                val darkIcons = !isSystemInDarkTheme()  // dark icons on light background, light icons on dark background
-
+                val darkIcons = !isSystemInDarkTheme()
                 if (!view.isInEditMode) {
                     SideEffect {
                         val window = (view.context as android.app.Activity).window
@@ -65,10 +67,17 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
-                    val homeViewModel = remember { HomeViewModel(workoutRepository, cycleRepository) }
 
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
+                            val homeViewModel: HomeViewModel = viewModel(
+                                factory = viewModelFactory {
+                                    initializer { HomeViewModel(workoutRepository, cycleRepository) }
+                                }
+                            )
+                            LaunchedEffect(Unit) {
+                                homeViewModel.loadToday()
+                            }
                             HomeScreen(
                                 viewModel = homeViewModel,
                                 onStartSession = { day -> navController.navigate("workout/${day.id}") },
@@ -77,6 +86,7 @@ class MainActivity : ComponentActivity() {
                                 onViewProgress = { navController.navigate("progress") }
                             )
                         }
+
                         composable(
                             route = "details/{dayId}/{dayName}",
                             arguments = listOf(
@@ -86,40 +96,52 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val dayId = backStackEntry.arguments?.getLong("dayId") ?: 0L
                             val dayName = backStackEntry.arguments?.getString("dayName") ?: ""
-                            val detailsViewModel = remember(dayId) {
-                                WorkoutDetailsViewModel(workoutRepository, dayId)
-                            }
+                            val detailsViewModel: WorkoutDetailsViewModel = viewModel(
+                                key = "details_$dayId",
+                                factory = viewModelFactory {
+                                    initializer { WorkoutDetailsViewModel(workoutRepository, dayId) }
+                                }
+                            )
                             WorkoutDetailsScreen(
                                 dayName = dayName,
                                 viewModel = detailsViewModel,
                                 onBack = { navController.popBackStack() }
                             )
                         }
+
                         composable(
                             route = "workout/{dayId}",
                             arguments = listOf(navArgument("dayId") { type = NavType.LongType })
                         ) { backStackEntry ->
                             val dayId = backStackEntry.arguments?.getLong("dayId") ?: 0L
-                            val workoutViewModel = remember(dayId) {
-                                ActiveWorkoutViewModel(workoutRepository, cycleRepository, dayId)
-                            }
-                            ActiveWorkoutScreen(
-                                viewModel = workoutViewModel,
-                                onFinish = {
-                                    homeViewModel.loadToday()
-                                    navController.popBackStack("home", inclusive = false)
-                                },
-                                onQuit = {
-                                    navController.popBackStack("home", inclusive = false)
+                            val workoutViewModel: ActiveWorkoutViewModel = viewModel(
+                                key = "workout_$dayId",
+                                factory = viewModelFactory {
+                                    initializer { ActiveWorkoutViewModel(workoutRepository, cycleRepository, dayId) }
                                 }
                             )
+                            ActiveWorkoutScreen(
+                                viewModel = workoutViewModel,
+                                onFinish = { navController.popBackStack("home", inclusive = false) },
+                                onQuit = { navController.popBackStack("home", inclusive = false) }
+                            )
                         }
+
                         composable("history") {
-                            val historyViewModel = remember { HistoryViewModel(workoutRepository) }
+                            val historyViewModel: HistoryViewModel = viewModel(
+                                factory = viewModelFactory {
+                                    initializer { HistoryViewModel(workoutRepository) }
+                                }
+                            )
                             HistoryScreen(viewModel = historyViewModel, onBack = { navController.popBackStack() })
                         }
+
                         composable("progress") {
-                            val progressViewModel = remember { ProgressViewModel(workoutRepository) }
+                            val progressViewModel: ProgressViewModel = viewModel(
+                                factory = viewModelFactory {
+                                    initializer { ProgressViewModel(workoutRepository) }
+                                }
+                            )
                             ProgressScreen(viewModel = progressViewModel, onBack = { navController.popBackStack() })
                         }
                     }
