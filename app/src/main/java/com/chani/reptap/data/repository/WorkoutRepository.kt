@@ -9,9 +9,13 @@ class WorkoutRepository(private val db: AppDatabase) {
     val exercises = db.exerciseDao().getAll()
     val workoutDays = db.workoutDayDao().getAll()
 
+    val sessionHistory = db.sessionLogDao().getSessionSummaries()
+
     fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
 
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
+
+    fun getMuscleProgress(startTime: Long, endTime: Long) = db.setLogDao().getMuscleProgress(startTime, endTime)
 
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
@@ -122,5 +126,20 @@ class WorkoutRepository(private val db: AppDatabase) {
         )
         weDao.insertAll(plan)
         db.cycleStateDao().upsert(CycleState(id = 1, currentSlot = 1))
+    }
+
+    suspend fun startSession(dayId: Long): Long {
+        return db.sessionLogDao().insert(
+            SessionLog(workoutDayId = dayId, startedAt = System.currentTimeMillis())
+        )
+    }
+
+    suspend fun logSet(setLog: SetLog) {
+        db.setLogDao().insert(setLog)
+    }
+
+    suspend fun markSessionQuit(sessionId: Long) {
+        val session = db.sessionLogDao().getById(sessionId) ?: return
+        db.sessionLogDao().update(session.copy(status = com.chani.reptap.data.local.entity.SessionStatus.QUIT, finishedAt = System.currentTimeMillis()))
     }
 }

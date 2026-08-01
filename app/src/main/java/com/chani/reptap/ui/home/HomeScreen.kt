@@ -13,7 +13,9 @@ import com.chani.reptap.data.local.entity.WorkoutDay
 fun HomeScreen(
     viewModel: HomeViewModel,
     onStartSession: (WorkoutDay) -> Unit,
-    onViewDetails: (WorkoutDay) -> Unit
+    onViewDetails: (WorkoutDay) -> Unit,
+    onViewHistory: () -> Unit,
+    onViewProgress: () -> Unit
 ) {
     val today by viewModel.todayWorkout.collectAsState()
     val allDays by viewModel.allDays.collectAsState()
@@ -64,6 +66,16 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Select Workout Day Manually")
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = onViewHistory, modifier = Modifier.weight(1f)) {
+                            Text("History")
+                        }
+                        OutlinedButton(onClick = onViewProgress, modifier = Modifier.weight(1f)) {
+                            Text("Progress")
+                        }
                     }
                 }
             }
