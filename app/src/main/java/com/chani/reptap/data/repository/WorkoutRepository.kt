@@ -11,6 +11,8 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
 
+    fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip
