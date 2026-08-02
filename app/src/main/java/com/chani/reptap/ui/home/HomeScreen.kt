@@ -1,11 +1,16 @@
 package com.chani.reptap.ui.home
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,61 +25,116 @@ fun HomeScreen(
     val today by viewModel.todayWorkout.collectAsState()
     val allDays by viewModel.allDays.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val exercises by viewModel.todayExercises.collectAsState()
+
+    var showTopMenu by remember { mutableStateOf(false) }
+    var showDayMenu by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("RepTap") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("RepTap") },
+                actions = {
+                    IconButton(onClick = { showTopMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    }
+                    DropdownMenu(expanded = showTopMenu, onDismissRequest = { showTopMenu = false }) {
+                        DropdownMenuItem(text = { Text("History") }, onClick = {
+                            showTopMenu = false
+                            onViewHistory()
+                        })
+                        DropdownMenuItem(text = { Text("Progress") }, onClick = {
+                            showTopMenu = false
+                            onViewProgress()
+                        })
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (isLoading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    val day = today
-                    if (day == null) {
-                        Text("No workout data found", style = MaterialTheme.typography.titleMedium)
-                    } else if (day.isRecovery) {
-                        Text("No workouts today", style = MaterialTheme.typography.headlineSmall)
-                        Text("Recovery day — enjoy a walk or rest", style = MaterialTheme.typography.bodyMedium)
-                    } else {
-                        Text(day.name, style = MaterialTheme.typography.headlineSmall)
+                val day = today
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Header row: day title + three-dot menu
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = day?.name ?: "No day selected",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Box {
+                                    IconButton(onClick = { showDayMenu = true }) {
+                                        Icon(Icons.Default.MoreVert, contentDescription = "Day options")
+                                    }
+                                    DropdownMenu(expanded = showDayMenu, onDismissRequest = { showDayMenu = false }) {
+                                        DropdownMenuItem(text = { Text("Select training day") }, onClick = {
+                                            showDayMenu = false
+                                            showDayPicker = true
+                                        })
+                                    }
+                                }
+                            }
 
-                        Button(
-                            onClick = { onViewDetails(day) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("View Workout Details")
-                        }
+                            HorizontalDivider()
 
-                        Button(
-                            onClick = { onStartSession(day) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Start Session")
-                        }
-                    }
+                            // Exercise list body, fills remaining space
+                            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                when {
+                                    day == null -> {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text("No workout data found")
+                                        }
+                                    }
+                                    day.isRecovery -> {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                "Recovery day - No workouts today",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                    else -> {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                            verticalArrangement = Arrangement.SpaceEvenly
+                                        ) {
+                                            exercises.forEach { ex ->
+                                                ExerciseRow(ex)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
-                    OutlinedButton(
-                        onClick = { showDayPicker = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Select Workout Day Manually")
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick = onViewHistory, modifier = Modifier.weight(1f)) {
-                            Text("History")
-                        }
-                        OutlinedButton(onClick = onViewProgress, modifier = Modifier.weight(1f)) {
-                            Text("Progress")
+                            // Start Session button, part of the same card
+                            if (day != null && !day.isRecovery) {
+                                HorizontalDivider()
+                                Button(
+                                    onClick = { onStartSession(day) },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                                        topStart = 0.dp,
+                                        topEnd = 0.dp,
+                                        bottomStart = 12.dp,
+                                        bottomEnd = 12.dp
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues()
+                                ) {
+                                    Text("Start Session", fontSize = 16.sp)
+                                }
+                            }
                         }
                     }
                 }
@@ -101,6 +161,30 @@ fun HomeScreen(
             confirmButton = {
                 TextButton(onClick = { showDayPicker = false }) { Text("Cancel") }
             }
+        )
+    }
+}
+
+@Composable
+private fun ExerciseRow(ex: WorkoutExerciseWithName) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = ex.exerciseName,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+            maxLines = 1
+        )
+        Spacer(Modifier.width(8.dp))
+        val weightText = if (ex.defaultWeightKg == ex.defaultWeightKg.toInt().toFloat())
+            "${ex.defaultWeightKg.toInt()}kg" else "${ex.defaultWeightKg}kg"
+        Text(
+            text = "${ex.targetSets} sets · ${ex.repRangeMin} reps · $weightText",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium
         )
     }
 }

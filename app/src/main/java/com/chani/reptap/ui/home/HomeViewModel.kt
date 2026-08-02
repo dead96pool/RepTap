@@ -2,6 +2,7 @@ package com.chani.reptap.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
 import com.chani.reptap.data.repository.CycleRepository
 import com.chani.reptap.data.repository.WorkoutRepository
@@ -17,6 +18,9 @@ class HomeViewModel(
 
     private val _todayWorkout = MutableStateFlow<WorkoutDay?>(null)
     val todayWorkout: StateFlow<WorkoutDay?> = _todayWorkout.asStateFlow()
+
+    private val _todayExercises = MutableStateFlow<List<WorkoutExerciseWithName>>(emptyList())
+    val todayExercises: StateFlow<List<WorkoutExerciseWithName>> = _todayExercises.asStateFlow()
 
     private val _allDays = MutableStateFlow<List<WorkoutDay>>(emptyList())
     val allDays: StateFlow<List<WorkoutDay>> = _allDays.asStateFlow()
@@ -37,8 +41,18 @@ class HomeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             cycleRepository.autoCompleteRecoveryIfNeeded()
-            _todayWorkout.value = cycleRepository.getCurrentDay()
-            _isLoading.value = false
+            val day = cycleRepository.getCurrentDay()
+            _todayWorkout.value = day
+            if (day != null && !day.isRecovery) {
+                workoutRepository.getExercisesForDayWithNames(day.id).collect { list ->
+                    _todayExercises.value = list
+                    _isLoading.value = false
+                    return@collect
+                }
+            } else {
+                _todayExercises.value = emptyList()
+                _isLoading.value = false
+            }
         }
     }
 
