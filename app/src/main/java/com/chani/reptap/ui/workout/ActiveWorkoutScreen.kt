@@ -64,7 +64,8 @@ fun ActiveWorkoutScreen(
                 else -> {
                     RestTimerArea(
                         secondsRemaining = state.secondsRemaining,
-                        isBeforeNextExercise = state.phase == SetPhase.RESTING_BEFORE_NEXT_EXERCISE
+                        isBeforeNextExercise = state.phase == SetPhase.RESTING_BEFORE_NEXT_EXERCISE,
+                        onSkipRest = { viewModel.skipRestToFiveSeconds() }
                     )
                 }
             }
@@ -105,55 +106,87 @@ private fun RepTapArea(
 ) {
     val canFinish = repsTapped >= repMin
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Spacer(Modifier.height(24.dp))
-        Text("Set $setNumber of $totalSets", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Set $setNumber of $totalSets",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
         Text(
             "Target: $repMin-$repMax reps" + if (isPerSide) " each side" else "",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(24.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                .clickable { onTap() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$repsTapped",
-                fontSize = 96.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(onClick = onUndo, modifier = Modifier.weight(1f)) {
-                Text("-1")
-            }
-            Button(
-                onClick = onFinishSet,
-                enabled = canFinish,
-                modifier = Modifier.weight(2f)
-            ) {
-                Text("Finish Set")
-            }
-        }
         Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 24.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable { onTap() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$repsTapped",
+                        fontSize = 96.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                HorizontalDivider()
+
+                Row(modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Button(
+                        onClick = onUndo,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 0.dp, topEnd = 0.dp, bottomStart = 12.dp, bottomEnd = 0.dp
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text("-1")
+                    }
+                    Button(
+                        onClick = onFinishSet,
+                        enabled = canFinish,
+                        modifier = Modifier.weight(2f).fillMaxHeight(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 12.dp
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues()
+                    ) {
+                        Text("Finish Set")
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun RestTimerArea(secondsRemaining: Int, isBeforeNextExercise: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun RestTimerArea(
+    secondsRemaining: Int,
+    isBeforeNextExercise: Boolean,
+    onSkipRest: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Text(
             if (isBeforeNextExercise) "Rest before next exercise" else "Rest",
             style = MaterialTheme.typography.titleMedium
@@ -166,5 +199,14 @@ private fun RestTimerArea(secondsRemaining: Int, isBeforeNextExercise: Boolean) 
             color = Color(0xFF3F51B5)
         )
         Text("seconds", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(32.dp))
+        if (secondsRemaining > 5) {
+            OutlinedButton(
+                onClick = onSkipRest,
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("Skip Rest")
+            }
+        }
     }
 }

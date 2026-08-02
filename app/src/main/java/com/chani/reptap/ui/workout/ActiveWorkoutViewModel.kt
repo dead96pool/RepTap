@@ -145,6 +145,17 @@ class ActiveWorkoutViewModel(
         }
     }
 
+    fun skipRestToFiveSeconds() {
+        val state = _uiState.value
+        if (state.phase != SetPhase.RESTING_BETWEEN_SETS && state.phase != SetPhase.RESTING_BEFORE_NEXT_EXERCISE) return
+        if (state.secondsRemaining <= 5) return
+
+        timerJob?.cancel()
+        _uiState.value = state.copy(secondsRemaining = 5)
+        val isLastSetOfExercise = state.phase == SetPhase.RESTING_BEFORE_NEXT_EXERCISE
+        startTimer(5, isLastSetOfExercise)
+    }
+
     private fun completeWorkout() {
         viewModelScope.launch {
             cycleRepository.completeSession(sessionId)
