@@ -1,5 +1,6 @@
 package com.chani.reptap.ui.workout
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,10 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showQuitConfirm by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = state.phase != SetPhase.WORKOUT_COMPLETE) {
+        showQuitConfirm = true
+    }
 
     Scaffold(
         topBar = {
@@ -76,7 +81,7 @@ fun ActiveWorkoutScreen(
         AlertDialog(
             onDismissRequest = { showQuitConfirm = false },
             title = { Text("Quit session?") },
-            text = { Text("Completed sets are saved, but you'll restart this workout from exercise 1 next time.") },
+            text = { Text("Are you sure you want to quit the workout?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.quitSession()
