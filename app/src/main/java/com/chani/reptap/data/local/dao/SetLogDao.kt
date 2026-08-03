@@ -11,6 +11,14 @@ data class MuscleProgress(
     val avgWeight: Float
 )
 
+data class SetLogDetail(
+    val exerciseName: String,
+    val orderIndex: Int,
+    val setNumber: Int,
+    val repsCompleted: Int,
+    val weightKg: Float
+)
+
 @Dao
 interface SetLogDao {
     @Insert
@@ -32,4 +40,15 @@ interface SetLogDao {
         GROUP BY m.name
     """)
     fun getMuscleProgress(startTime: Long, endTime: Long): Flow<List<MuscleProgress>>
+
+    @Query("""
+        SELECT e.name AS exerciseName, we.orderIndex AS orderIndex, 
+               sl.setNumber AS setNumber, sl.repsCompleted AS repsCompleted, sl.weightKg AS weightKg
+        FROM set_logs sl
+        JOIN workout_exercises we ON sl.workoutExerciseId = we.id
+        JOIN exercises e ON we.exerciseId = e.id
+        WHERE sl.sessionLogId = :sessionId
+        ORDER BY we.orderIndex, sl.setNumber
+    """)
+    fun getSetDetailsForSession(sessionId: Long): Flow<List<SetLogDetail>>
 }

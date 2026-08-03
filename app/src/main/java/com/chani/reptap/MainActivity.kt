@@ -32,6 +32,8 @@ import com.chani.reptap.ui.progress.ProgressViewModel
 import com.chani.reptap.ui.theme.RepTapTheme
 import com.chani.reptap.ui.workout.ActiveWorkoutScreen
 import com.chani.reptap.ui.workout.ActiveWorkoutViewModel
+import com.chani.reptap.ui.history.SessionDetailScreen
+import com.chani.reptap.ui.history.SessionDetailViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,7 +135,48 @@ class MainActivity : ComponentActivity() {
                                     initializer { HistoryViewModel(workoutRepository) }
                                 }
                             )
-                            HistoryScreen(viewModel = historyViewModel, onBack = { navController.popBackStack() })
+                            HistoryScreen(
+                                viewModel = historyViewModel,
+                                onBack = { navController.popBackStack() },
+                                onSessionClick = { session ->
+                                    navController.navigate("session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}")
+                                }
+                            )
+                        }
+                        composable(
+                            route = "session_detail/{sessionId}/{workoutDayId}/{dayName}/{startedAt}/{finishedAt}",
+                            arguments = listOf(
+                                navArgument("sessionId") { type = NavType.LongType },
+                                navArgument("workoutDayId") { type = NavType.LongType },
+                                navArgument("dayName") { type = NavType.StringType },
+                                navArgument("startedAt") { type = NavType.LongType },
+                                navArgument("finishedAt") { type = NavType.LongType }
+                            )
+                        ) { backStackEntry ->
+                            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+                            val workoutDayId = backStackEntry.arguments?.getLong("workoutDayId") ?: 0L
+                            val dayName = backStackEntry.arguments?.getString("dayName") ?: ""
+                            val startedAt = backStackEntry.arguments?.getLong("startedAt") ?: 0L
+                            val finishedAt = backStackEntry.arguments?.getLong("finishedAt") ?: 0L
+
+                            val currentSession = com.chani.reptap.data.local.dao.SessionRecap(
+                                id = sessionId, workoutDayId = workoutDayId, workoutDayName = dayName,
+                                startedAt = startedAt, finishedAt = finishedAt, totalSets = 0, totalReps = 0
+                            )
+
+                            val detailViewModel: SessionDetailViewModel = viewModel(
+                                key = "session_detail_$sessionId",
+                                factory = viewModelFactory {
+                                    initializer { SessionDetailViewModel(workoutRepository, sessionId, workoutDayId, startedAt) }
+                                }
+                            )
+
+                            SessionDetailScreen(
+                                dayName = dayName,
+                                currentSession = currentSession,
+                                viewModel = detailViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
                         }
 
                         composable("progress") {

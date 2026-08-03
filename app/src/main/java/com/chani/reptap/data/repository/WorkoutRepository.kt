@@ -19,8 +19,12 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     val completedSessionRecaps = db.sessionLogDao().getCompletedSessionRecaps()
 
-    suspend fun getPreviousSessionForDay(workoutDayId: Long, excludeSessionId: Long) =
-        db.sessionLogDao().getPreviousSessionForDay(workoutDayId, excludeSessionId)
+    suspend fun getPreviousSessionForDay(workoutDayId: Long, currentStartedAt: Long) =
+        db.sessionLogDao().getPreviousSessionForDay(workoutDayId, currentStartedAt)
+
+    fun getSetDetailsForSession(sessionId: Long) = db.setLogDao().getSetDetailsForSession(sessionId)
+
+    suspend fun getSessionById(sessionId: Long) = db.sessionLogDao().getById(sessionId)
 
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()

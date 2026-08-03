@@ -66,9 +66,9 @@ interface SessionLogDao {
                (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps
         FROM session_logs s
         JOIN workout_days wd ON s.workoutDayId = wd.id
-        WHERE s.status = 'COMPLETED' AND s.workoutDayId = :workoutDayId AND s.id != :excludeSessionId
+        WHERE s.status = 'COMPLETED' AND s.workoutDayId = :workoutDayId AND s.startedAt < :currentStartedAt
         ORDER BY s.startedAt DESC
         LIMIT 1
     """)
-    suspend fun getPreviousSessionForDay(workoutDayId: Long, excludeSessionId: Long): SessionRecap?
+    suspend fun getPreviousSessionForDay(workoutDayId: Long, currentStartedAt: Long): SessionRecap?
 }

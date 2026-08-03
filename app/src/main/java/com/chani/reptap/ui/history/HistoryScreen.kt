@@ -1,5 +1,6 @@
 package com.chani.reptap.ui.history
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +17,11 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit) {
+fun HistoryScreen(
+    viewModel: HistoryViewModel,
+    onBack: () -> Unit,
+    onSessionClick: (SessionRecap) -> Unit
+) {
     val sessions by viewModel.sessions.collectAsState()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d - h:mm a", Locale.getDefault()) }
 
@@ -29,7 +34,7 @@ fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit) {
         }
     ) { innerPadding ->
         if (sessions.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = androidx.compose.ui.Alignment.Center) {
                 Text("No completed workouts yet")
             }
         } else {
@@ -38,7 +43,7 @@ fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(sessions) { session ->
-                    TimelineCard(session, dateFormat)
+                    TimelineCard(session, dateFormat, onClick = { onSessionClick(session) })
                 }
             }
         }
@@ -46,10 +51,12 @@ fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun TimelineCard(session: SessionRecap, dateFormat: SimpleDateFormat) {
+private fun TimelineCard(session: SessionRecap, dateFormat: SimpleDateFormat, onClick: () -> Unit) {
     val durationMin = TimeUnit.MILLISECONDS.toMinutes(session.finishedAt - session.startedAt)
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(session.workoutDayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(4.dp))
