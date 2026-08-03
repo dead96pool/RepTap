@@ -86,6 +86,16 @@ fun HomeScreen(
                                 }
                             }
 
+                            val nextDate by viewModel.nextWorkoutDate.collectAsState()
+                            if (day != null && !day.isRecovery && nextDate != null) {
+                                Text(
+                                    text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                                )
+                            }
+
                             HorizontalDivider()
 
                             // Exercise list body, fills remaining space

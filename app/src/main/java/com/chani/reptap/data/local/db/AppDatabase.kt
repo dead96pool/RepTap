@@ -18,7 +18,7 @@ import com.chani.reptap.data.local.entity.*
         SetLog::class,
         CycleState::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 
@@ -43,7 +43,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "reptap_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration(true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

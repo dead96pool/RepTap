@@ -28,6 +28,9 @@ class HomeViewModel(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _nextWorkoutDate = MutableStateFlow<java.time.LocalDate?>(null)
+    val nextWorkoutDate: StateFlow<java.time.LocalDate?> = _nextWorkoutDate.asStateFlow()
+
     init {
         loadToday()
         viewModelScope.launch {
@@ -37,12 +40,25 @@ class HomeViewModel(
         }
     }
 
+    fun formatNextWorkoutDate(date: java.time.LocalDate): String {
+        val today = java.time.LocalDate.now()
+        return when (date) {
+            today -> "Today"
+            today.plusDays(1) -> "Tomorrow"
+            else -> {
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM")
+                date.format(formatter)
+            }
+        }
+    }
+
     fun loadToday() {
         viewModelScope.launch {
             _isLoading.value = true
-            cycleRepository.autoCompleteRecoveryIfNeeded()
+            cycleRepository.refreshScheduleIfOverdue()
             val day = cycleRepository.getCurrentDay()
             _todayWorkout.value = day
+            _nextWorkoutDate.value = cycleRepository.getScheduledDateForCurrentSlot()
             if (day != null && !day.isRecovery) {
                 workoutRepository.getExercisesForDayWithNames(day.id).collect { list ->
                     _todayExercises.value = list

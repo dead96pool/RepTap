@@ -125,7 +125,9 @@ class WorkoutRepository(private val db: AppDatabase) {
             WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bent-knee leg raise"), orderIndex = 8, targetSets = 2, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0)
         )
         weDao.insertAll(plan)
-        db.cycleStateDao().upsert(CycleState(id = 1, currentSlot = 1))
+        db.cycleStateDao().upsert(
+            CycleState(id = 1, currentSlot = 1, scheduledEpochDay = java.time.LocalDate.now().toEpochDay())
+        )
     }
 
     suspend fun startSession(dayId: Long): Long {
