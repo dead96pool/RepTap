@@ -49,7 +49,8 @@ fun HomeScreen(
                             onViewProgress()
                         })
                     }
-                }
+                },
+                modifier = Modifier.heightIn(max = 85.dp),
             )
         }
     ) { innerPadding ->
@@ -59,6 +60,16 @@ fun HomeScreen(
             } else {
                 val day = today
                 Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    val nextDate by viewModel.nextWorkoutDate.collectAsState()
+                    if (day != null && !day.isRecovery && nextDate != null) {
+                        Text(
+                            text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                        )
+                    }
+
                     Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Header row: day title + three-dot menu
@@ -86,15 +97,7 @@ fun HomeScreen(
                                 }
                             }
 
-                            val nextDate by viewModel.nextWorkoutDate.collectAsState()
-                            if (day != null && !day.isRecovery && nextDate != null) {
-                                Text(
-                                    text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                                )
-                            }
+
 
                             HorizontalDivider()
 

@@ -17,6 +17,11 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     fun getMuscleProgress(startTime: Long, endTime: Long) = db.setLogDao().getMuscleProgress(startTime, endTime)
 
+    val completedSessionRecaps = db.sessionLogDao().getCompletedSessionRecaps()
+
+    suspend fun getPreviousSessionForDay(workoutDayId: Long, excludeSessionId: Long) =
+        db.sessionLogDao().getPreviousSessionForDay(workoutDayId, excludeSessionId)
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip

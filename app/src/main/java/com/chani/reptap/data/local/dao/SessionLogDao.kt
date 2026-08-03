@@ -13,6 +13,16 @@ data class SessionSummary(
     val totalSets: Int
 )
 
+data class SessionRecap(
+    val id: Long,
+    val workoutDayId: Long,
+    val workoutDayName: String,
+    val startedAt: Long,
+    val finishedAt: Long,
+    val totalSets: Int,
+    val totalReps: Int
+)
+
 @Dao
 interface SessionLogDao {
     @Insert
@@ -36,4 +46,29 @@ interface SessionLogDao {
         ORDER BY s.startedAt DESC
     """)
     fun getSessionSummaries(): Flow<List<SessionSummary>>
+
+    @Query("""
+        SELECT s.id AS id, s.workoutDayId AS workoutDayId, wd.name AS workoutDayName,
+               s.startedAt AS startedAt, s.finishedAt AS finishedAt,
+               (SELECT COUNT(*) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalSets,
+               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps
+        FROM session_logs s
+        JOIN workout_days wd ON s.workoutDayId = wd.id
+        WHERE s.status = 'COMPLETED'
+        ORDER BY s.startedAt DESC
+    """)
+    fun getCompletedSessionRecaps(): Flow<List<SessionRecap>>
+
+    @Query("""
+        SELECT s.id AS id, s.workoutDayId AS workoutDayId, wd.name AS workoutDayName,
+               s.startedAt AS startedAt, s.finishedAt AS finishedAt,
+               (SELECT COUNT(*) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalSets,
+               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps
+        FROM session_logs s
+        JOIN workout_days wd ON s.workoutDayId = wd.id
+        WHERE s.status = 'COMPLETED' AND s.workoutDayId = :workoutDayId AND s.id != :excludeSessionId
+        ORDER BY s.startedAt DESC
+        LIMIT 1
+    """)
+    suspend fun getPreviousSessionForDay(workoutDayId: Long, excludeSessionId: Long): SessionRecap?
 }
