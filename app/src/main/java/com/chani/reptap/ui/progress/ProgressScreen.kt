@@ -1,10 +1,20 @@
 package com.chani.reptap.ui.progress
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -12,36 +22,36 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit) {
-    val progress by viewModel.muscleProgress.collectAsState()
+    val summary by viewModel.summary.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Progress (Last 7 Days)") },
+                title = { Text("Progress") },
                 navigationIcon = { TextButton(onClick = onBack) { Text("Back") } }
             )
         }
     ) { innerPadding ->
-        if (progress.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Text("No sets logged in the last 7 days")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(progress) { p ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(p.muscleName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(4.dp))
-                            Text("${p.totalReps} total reps across ${p.totalSets} sets")
-                            Text("Avg weight: ${"%.1f".format(p.avgWeight)} kg")
-                        }
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
+            summary?.let { s ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ProgressStatRow("Exercises Improved", "${s.exercisesImproved}")
+                        ProgressStatRow("Personal Records", "${s.personalRecords}")
+                        ProgressStatRow("Total Sessions", "${s.totalSessions}")
+                        ProgressStatRow("Average Duration", "${s.averageDurationMillis / 60000} min")
+                        ProgressStatRow("Longest Streak", "${s.longestStreak} workouts")
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProgressStatRow(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
     }
 }

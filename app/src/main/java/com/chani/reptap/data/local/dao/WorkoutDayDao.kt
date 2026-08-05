@@ -4,6 +4,11 @@ import androidx.room.*
 import com.chani.reptap.data.local.entity.WorkoutDay
 import kotlinx.coroutines.flow.Flow
 
+data class WorkoutDaySlot(
+    val id: Long,
+    val slotNumber: Int
+)
+
 @Dao
 interface WorkoutDayDao {
     @Query("SELECT * FROM workout_days ORDER BY slotNumber")
@@ -14,6 +19,9 @@ interface WorkoutDayDao {
 
     @Query("SELECT * FROM workout_days")
     suspend fun getAllOnce(): List<WorkoutDay>
+
+    @Query("SELECT id, slotNumber FROM workout_days ORDER BY slotNumber")
+    suspend fun getIdToSlotMap(): List<WorkoutDaySlot>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(days: List<WorkoutDay>)

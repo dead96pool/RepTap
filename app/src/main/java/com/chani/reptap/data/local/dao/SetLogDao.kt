@@ -19,6 +19,15 @@ data class SetLogDetail(
     val weightKg: Float
 )
 
+data class ExerciseSessionVolume(
+    val exerciseId: Long,
+    val exerciseName: String,
+    val isBodyweight: Boolean,
+    val sessionLogId: Long,
+    val startedAt: Long,
+    val sessionVolume: Float
+)
+
 @Dao
 interface SetLogDao {
     @Insert
@@ -51,4 +60,26 @@ interface SetLogDao {
         ORDER BY we.orderIndex, sl.setNumber
     """)
     fun getSetDetailsForSession(sessionId: Long): Flow<List<SetLogDetail>>
+
+    @Query("""
+    SELECT
+        e.id AS exerciseId,
+        e.name AS exerciseName,
+        e.isBodyweight AS isBodyweight,
+        s.id AS sessionLogId,
+        s.startedAt AS startedAt,
+        SUM(
+            CASE WHEN e.isBodyweight = 1
+                 THEN sl.repsCompleted
+                 ELSE sl.repsCompleted * sl.weightKg
+            END
+        ) AS sessionVolume
+    FROM set_logs sl
+    JOIN workout_exercises we ON sl.workoutExerciseId = we.id
+    JOIN exercises e ON we.exerciseId = e.id
+    JOIN session_logs s ON sl.sessionLogId = s.id
+    WHERE s.status = 'COMPLETED'
+    GROUP BY e.id, s.id
+""")
+    suspend fun getAllExerciseSessionVolumes(): List<ExerciseSessionVolume>
 }

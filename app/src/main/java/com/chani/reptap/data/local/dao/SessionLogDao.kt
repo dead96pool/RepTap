@@ -23,6 +23,11 @@ data class SessionRecap(
     val totalReps: Int
 )
 
+data class SessionDateAndDay(
+    val startedAt: Long,
+    val workoutDayId: Long
+)
+
 @Dao
 interface SessionLogDao {
     @Insert
@@ -71,4 +76,20 @@ interface SessionLogDao {
         LIMIT 1
     """)
     suspend fun getPreviousSessionForDay(workoutDayId: Long, currentStartedAt: Long): SessionRecap?
+
+    @Query("""
+        SELECT startedAt, workoutDayId FROM session_logs
+        WHERE status = 'COMPLETED'
+        ORDER BY startedAt ASC
+    """)
+    suspend fun getAllCompletedSessionsOrdered(): List<SessionDateAndDay>
+
+    @Query("""
+        SELECT AVG(finishedAt - startedAt) FROM session_logs
+        WHERE status = 'COMPLETED' AND finishedAt IS NOT NULL
+    """)
+    suspend fun getAverageDurationMillis(): Long?
+
+    @Query("SELECT COUNT(*) FROM session_logs WHERE status = 'COMPLETED'")
+    suspend fun getTotalSessionsCount(): Int
 }
