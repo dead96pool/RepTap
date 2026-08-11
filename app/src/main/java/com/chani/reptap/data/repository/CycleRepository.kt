@@ -48,7 +48,7 @@ class CycleRepository(private val db: AppDatabase) {
         var slot = state.currentSlot
         var daysAhead = 0L
         do {
-            slot = if (slot >= 6) 1 else slot + 1
+            slot = if (slot >= 7) 1 else slot + 1
             daysAhead += 1
         } while (db.workoutDayDao().getBySlot(slot)?.isRecovery == true)
         return LocalDate.ofEpochDay(state.scheduledEpochDay).plusDays(daysAhead)
@@ -68,7 +68,7 @@ class CycleRepository(private val db: AppDatabase) {
         var nextSlot = state.currentSlot
         var daysAhead = 0L
         do {
-            nextSlot = if (nextSlot >= 6) 1 else nextSlot + 1
+            nextSlot = if (nextSlot >= 7) 1 else nextSlot + 1
             daysAhead += 1
         } while (db.workoutDayDao().getBySlot(nextSlot)?.isRecovery == true)
 

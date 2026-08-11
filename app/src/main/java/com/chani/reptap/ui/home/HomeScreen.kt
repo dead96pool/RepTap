@@ -181,15 +181,14 @@ fun HomeScreen(
 @Composable
 private fun ExerciseRow(ex: WorkoutExerciseWithName) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = ex.exerciseName,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(1f),
-            maxLines = 1
+            modifier = Modifier.weight(1f)
         )
         Spacer(Modifier.width(8.dp))
         val weightText = if (ex.defaultWeightKg == ex.defaultWeightKg.toInt().toFloat())

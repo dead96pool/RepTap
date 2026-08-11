@@ -18,7 +18,7 @@ import com.chani.reptap.data.local.entity.*
         SetLog::class,
         CycleState::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 

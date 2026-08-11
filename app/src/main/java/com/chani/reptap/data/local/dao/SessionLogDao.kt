@@ -92,4 +92,16 @@ interface SessionLogDao {
 
     @Query("SELECT COUNT(*) FROM session_logs WHERE status = 'COMPLETED'")
     suspend fun getTotalSessionsCount(): Int
+
+    @Query("""
+        SELECT MIN(startedAt) FROM session_logs WHERE status = 'COMPLETED'
+    """)
+    suspend fun getFirstSessionDate(): Long?
+
+    @Query("""
+        SELECT COUNT(*) FROM session_logs
+        WHERE status = 'COMPLETED' AND workoutDayId IN
+            (SELECT id FROM workout_days WHERE isRecovery = 0)
+    """)
+    suspend fun getCompletedNonRecoverySessionsCount(): Int
 }
