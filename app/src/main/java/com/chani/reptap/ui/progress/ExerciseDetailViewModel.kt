@@ -3,6 +3,7 @@ package com.chani.reptap.ui.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.dao.ExerciseDetailStats
+import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
 import com.chani.reptap.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,9 @@ class ExerciseDetailViewModel(
     private val _percentChange = MutableStateFlow<Double?>(null)
     val percentChange: StateFlow<Double?> = _percentChange.asStateFlow()
 
+    private val _chartData = MutableStateFlow<List<ExerciseSessionDataPoint>>(emptyList())
+    val chartData: StateFlow<List<ExerciseSessionDataPoint>> = _chartData.asStateFlow()
+
     init {
         viewModelScope.launch {
             _stats.value = repository.getExerciseDetailStats(exerciseId)
@@ -33,6 +37,8 @@ class ExerciseDetailViewModel(
                 val earlier3 = volumes.subList(3, 6).map { it.sessionVolume }.average()
                 _percentChange.value = if (earlier3 == 0.0) 0.0 else ((recent3 - earlier3) / earlier3) * 100.0
             }
+
+            _chartData.value = repository.getExerciseSessionDataPoints(exerciseId)
         }
     }
 }

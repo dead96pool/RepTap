@@ -23,6 +23,29 @@ import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.style.TextAlign
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModel
+import com.patrykandpatrick.vico.core.common.data.ExtraStore
+import androidx.compose.ui.graphics.toArgb
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +56,32 @@ fun ExerciseDetailScreen(
 ) {
     val stats by viewModel.stats.collectAsState()
     val percentChange by viewModel.percentChange.collectAsState()
+    val chartData by viewModel.chartData.collectAsState()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d", Locale.getDefault()) }
+
+    val xToDateMapKey = remember { ExtraStore.Key<Map<Double, Long>>() }
+    val modelProducer = remember { CartesianChartModelProducer() }
+    LaunchedEffect(chartData) {
+        if (chartData.isNotEmpty()) {
+            val xToDate = chartData.mapIndexed { index, point -> index.toDouble() to point.startedAt }.toMap()
+            modelProducer.runTransaction {
+                lineSeries { series(chartData.map { it.avgWeightKg.toDouble() }) }
+                extras { it[xToDateMapKey] = xToDate }
+            }
+        }
+    }
+
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d") }
+    val dateAxisFormatter = remember {
+        CartesianValueFormatter { context, x, _ ->
+            val millis = context.model.extraStore[xToDateMapKey]?.get(x)
+            millis?.let {
+                java.time.Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().format(dateFormatter)
+            } ?: ""
+        }
+    }
+
+    val marker = rememberDefaultCartesianMarker(label = rememberTextComponent())
 
     Scaffold(
         topBar = {
@@ -62,6 +110,41 @@ fun ExerciseDetailScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp)
             )
+
+            if (chartData.size >= 2) {
+                Text(
+                    "Weight Over Time",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                )
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    CartesianChartHost(
+                        chart = rememberCartesianChart(
+                            rememberLineCartesianLayer(),
+                            startAxis = VerticalAxis.rememberStart(
+                                title = "Weight (kg)",
+                                titleComponent = rememberAxisLabelComponent()
+                            ),
+                            bottomAxis = HorizontalAxis.rememberBottom(
+                                valueFormatter = dateAxisFormatter
+                            ),
+                            marker = marker
+                        ),
+                        modelProducer = modelProducer,
+                        zoomState = rememberVicoZoomState(zoomEnabled = false),
+                        modifier = Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
+                    )
+                }
+            } else if (stats != null) {
+                Text(
+                    "Log at least 2 sessions to see weight trends",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
