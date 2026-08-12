@@ -36,6 +36,8 @@ import com.chani.reptap.ui.workout.ActiveWorkoutScreen
 import com.chani.reptap.ui.workout.ActiveWorkoutViewModel
 import com.chani.reptap.ui.history.SessionDetailScreen
 import com.chani.reptap.ui.history.SessionDetailViewModel
+import com.chani.reptap.ui.progress.AllExercisesScreen
+import com.chani.reptap.ui.progress.AllExercisesViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -192,6 +194,22 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onExerciseClick = { improvement ->
                                     navController.navigate("exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}")
+                                },
+                                onViewAllExercises = { navController.navigate("all_exercises") }
+                            )
+                        }
+
+                        composable("all_exercises") {
+                            val allExercisesViewModel: AllExercisesViewModel = viewModel(
+                                factory = viewModelFactory {
+                                    initializer { AllExercisesViewModel(workoutRepository) }
+                                }
+                            )
+                            AllExercisesScreen(
+                                viewModel = allExercisesViewModel,
+                                onBack = { navController.popBackStack() },
+                                onExerciseClick = { item ->
+                                    navController.navigate("exercise_detail/${item.id}/${item.name}")
                                 }
                             )
                         }

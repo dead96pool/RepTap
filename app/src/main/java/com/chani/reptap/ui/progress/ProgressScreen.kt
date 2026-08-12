@@ -1,5 +1,10 @@
 package com.chani.reptap.ui.progress
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,7 +35,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onExerciseClick: (ExerciseImprovement) -> Unit) {
+fun ProgressScreen(
+    viewModel: ProgressViewModel,
+    onBack: () -> Unit,
+    onExerciseClick: (ExerciseImprovement) -> Unit,
+    onViewAllExercises: () -> Unit
+) {
     val summary by viewModel.summary.collectAsState()
     val improvements by viewModel.exerciseImprovements.collectAsState()
 
@@ -65,12 +75,21 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onExerciseC
                 }
             }
             item {
-                Text(
-                    "Exercise Trends",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Exercise Trends",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = onViewAllExercises) {
+                        Text("View All")
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                    }
+                }
             }
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {

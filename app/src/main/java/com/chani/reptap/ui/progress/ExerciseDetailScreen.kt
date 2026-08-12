@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +32,7 @@ fun ExerciseDetailScreen(
     onBack: () -> Unit
 ) {
     val stats by viewModel.stats.collectAsState()
+    val percentChange by viewModel.percentChange.collectAsState()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d", Locale.getDefault()) }
 
     Scaffold(
@@ -51,6 +53,7 @@ fun ExerciseDetailScreen(
                         DetailStatRow("Sessions Logged", "${s.sessionsLogged}")
                         DetailStatRow("Total Reps (all-time)", "${s.totalReps}")
                         DetailStatRow("Last Performed", dateFormat.format(java.util.Date(s.lastPerformedAt)))
+                        TrendStatRow(percentChange)
                     }
                 }
             } ?: Text(
@@ -68,5 +71,28 @@ private fun DetailStatRow(label: String, value: String) {
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun TrendStatRow(percentChange: Double?) {
+    Column {
+        Text("Recent Trend", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (percentChange == null) {
+            Text("-", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        } else {
+            val displayPercent = (percentChange * 10).roundToInt() / 10.0
+            val color = when {
+                displayPercent > 0.0 -> Color(0xFF2E7D32)
+                displayPercent < 0.0 -> Color(0xFFC62828)
+                else -> MaterialTheme.colorScheme.onSurface
+            }
+            Text(
+                "${if (displayPercent > 0) "+" else ""}$displayPercent%",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
     }
 }
