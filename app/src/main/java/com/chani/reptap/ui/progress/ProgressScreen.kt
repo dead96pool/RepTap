@@ -1,5 +1,6 @@
 package com.chani.reptap.ui.progress
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit) {
+fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit, onExerciseClick: (ExerciseImprovement) -> Unit) {
     val summary by viewModel.summary.collectAsState()
     val improvements by viewModel.exerciseImprovements.collectAsState()
 
@@ -75,7 +76,7 @@ fun ProgressScreen(viewModel: ProgressViewModel, onBack: () -> Unit) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         improvements.forEachIndexed { index, item ->
-                            ExerciseImprovementRow(item)
+                            ExerciseImprovementRow(item, onClick = { onExerciseClick(item) })
                             if (index < improvements.size - 1) {
                                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             }
@@ -104,17 +105,17 @@ private fun ProgressStatRow(label: String, value: String) {
 }
 
 @Composable
-private fun ExerciseImprovementRow(item: ExerciseImprovement) {
+private fun ExerciseImprovementRow(item: ExerciseImprovement, onClick: () -> Unit) {
     val color = when {
         item.percentChange > 0.0 -> Color(0xFF2E7D32)
         item.percentChange < 0.0 -> Color(0xFFC62828)
         else -> MaterialTheme.colorScheme.onSurface
     }
-    
+
     val displayPercent = (item.percentChange * 10).roundToInt() / 10.0
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(item.exerciseName, style = MaterialTheme.typography.bodyMedium)

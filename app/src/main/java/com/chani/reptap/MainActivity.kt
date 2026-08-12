@@ -29,6 +29,8 @@ import com.chani.reptap.ui.home.HomeScreen
 import com.chani.reptap.ui.home.HomeViewModel
 import com.chani.reptap.ui.progress.ProgressScreen
 import com.chani.reptap.ui.progress.ProgressViewModel
+import com.chani.reptap.ui.progress.ExerciseDetailScreen
+import com.chani.reptap.ui.progress.ExerciseDetailViewModel
 import com.chani.reptap.ui.theme.RepTapTheme
 import com.chani.reptap.ui.workout.ActiveWorkoutScreen
 import com.chani.reptap.ui.workout.ActiveWorkoutViewModel
@@ -185,7 +187,35 @@ class MainActivity : ComponentActivity() {
                                     initializer { ProgressViewModel(workoutRepository) }
                                 }
                             )
-                            ProgressScreen(viewModel = progressViewModel, onBack = { navController.popBackStack() })
+                            ProgressScreen(
+                                viewModel = progressViewModel,
+                                onBack = { navController.popBackStack() },
+                                onExerciseClick = { improvement ->
+                                    navController.navigate("exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}")
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = "exercise_detail/{exerciseId}/{exerciseName}",
+                            arguments = listOf(
+                                navArgument("exerciseId") { type = NavType.LongType },
+                                navArgument("exerciseName") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
+                            val exerciseName = backStackEntry.arguments?.getString("exerciseName") ?: ""
+                            val exerciseDetailViewModel: ExerciseDetailViewModel = viewModel(
+                                key = "exercise_detail_$exerciseId",
+                                factory = viewModelFactory {
+                                    initializer { ExerciseDetailViewModel(workoutRepository, exerciseId) }
+                                }
+                            )
+                            ExerciseDetailScreen(
+                                exerciseName = exerciseName,
+                                viewModel = exerciseDetailViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                     }
                 }

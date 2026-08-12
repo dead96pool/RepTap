@@ -18,8 +18,9 @@ data class ProgressSummary(
 )
 
 data class ExerciseImprovement(
+    val exerciseId: Long,
     val exerciseName: String,
-    val percentChange: Double // positive = improved, negative = declined, 0 = neutral
+    val percentChange: Double
 )
 
 class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel() {
@@ -89,7 +90,7 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
         val results = mutableListOf<ExerciseImprovement>()
 
         for ((key, sessions) in grouped) {
-            val (_, exerciseName) = key
+            val (exerciseId, exerciseName) = key
             val sorted = sessions.sortedByDescending { it.startedAt }
             if (sorted.size < 6) continue
 
@@ -97,7 +98,7 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
             val earlier3 = sorted.subList(3, 6).map { it.sessionVolume }.average()
 
             val percentChange = if (earlier3 == 0.0) 0.0 else ((recent3 - earlier3) / earlier3) * 100.0
-            results.add(ExerciseImprovement(exerciseName, percentChange))
+            results.add(ExerciseImprovement(exerciseId, exerciseName, percentChange))
         }
         return results.sortedByDescending { it.percentChange }
     }

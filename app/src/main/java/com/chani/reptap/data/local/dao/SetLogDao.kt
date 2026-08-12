@@ -28,6 +28,16 @@ data class ExerciseSessionVolume(
     val sessionVolume: Float
 )
 
+data class ExerciseDetailStats(
+    val exerciseName: String,
+    val isBodyweight: Boolean,
+    val averageReps: Double,
+    val bestSingleSetReps: Int,
+    val sessionsLogged: Int,
+    val totalReps: Int,
+    val lastPerformedAt: Long
+)
+
 @Dao
 interface SetLogDao {
     @Insert
@@ -82,4 +92,22 @@ interface SetLogDao {
     GROUP BY e.id, s.id
 """)
     suspend fun getAllExerciseSessionVolumes(): List<ExerciseSessionVolume>
+
+    @Query("""
+    SELECT
+        e.name AS exerciseName,
+        e.isBodyweight AS isBodyweight,
+        AVG(sl.repsCompleted) AS averageReps,
+        MAX(sl.repsCompleted) AS bestSingleSetReps,
+        COUNT(DISTINCT s.id) AS sessionsLogged,
+        SUM(sl.repsCompleted) AS totalReps,
+        MAX(s.startedAt) AS lastPerformedAt
+    FROM set_logs sl
+    JOIN workout_exercises we ON sl.workoutExerciseId = we.id
+    JOIN exercises e ON we.exerciseId = e.id
+    JOIN session_logs s ON sl.sessionLogId = s.id
+    WHERE s.status = 'COMPLETED' AND e.id = :exerciseId
+    GROUP BY e.id
+""")
+    suspend fun getExerciseDetailStats(exerciseId: Long): ExerciseDetailStats?
 }
