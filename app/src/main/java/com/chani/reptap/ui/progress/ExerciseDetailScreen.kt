@@ -1,12 +1,27 @@
 package com.chani.reptap.ui.progress
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -15,37 +30,34 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
+import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
+import com.chani.reptap.data.local.dao.ExerciseSetDetail
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
-import java.util.Locale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.text.style.TextAlign
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
-import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
-import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
-import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModel
-import com.patrykandpatrick.vico.core.common.data.ExtraStore
-import androidx.compose.ui.graphics.toArgb
-import java.time.LocalDate
+import java.time.Instant
+import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,32 +68,9 @@ fun ExerciseDetailScreen(
 ) {
     val stats by viewModel.stats.collectAsState()
     val percentChange by viewModel.percentChange.collectAsState()
-    val chartData by viewModel.chartData.collectAsState()
+    val monthlyChartData by viewModel.monthlyChartData.collectAsState()
+    val setDetailsBySession by viewModel.setDetailsBySession.collectAsState()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d", Locale.getDefault()) }
-
-    val xToDateMapKey = remember { ExtraStore.Key<Map<Double, Long>>() }
-    val modelProducer = remember { CartesianChartModelProducer() }
-    LaunchedEffect(chartData) {
-        if (chartData.isNotEmpty()) {
-            val xToDate = chartData.mapIndexed { index, point -> index.toDouble() to point.startedAt }.toMap()
-            modelProducer.runTransaction {
-                lineSeries { series(chartData.map { it.avgWeightKg.toDouble() }) }
-                extras { it[xToDateMapKey] = xToDate }
-            }
-        }
-    }
-
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d") }
-    val dateAxisFormatter = remember {
-        CartesianValueFormatter { context, x, _ ->
-            val millis = context.model.extraStore[xToDateMapKey]?.get(x)
-            millis?.let {
-                java.time.Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().format(dateFormatter)
-            } ?: ""
-        }
-    }
-
-    val marker = rememberDefaultCartesianMarker(label = rememberTextComponent())
 
     Scaffold(
         topBar = {
@@ -91,7 +80,13 @@ fun ExerciseDetailScreen(
             )
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(16.dp)
+        ) {
             stats?.let { s ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -111,30 +106,63 @@ fun ExerciseDetailScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            if (chartData.size >= 2) {
+            if (monthlyChartData.isNotEmpty()) {
                 Text(
                     "Weight Over Time",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
                 )
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    CartesianChartHost(
-                        chart = rememberCartesianChart(
-                            rememberLineCartesianLayer(),
-                            startAxis = VerticalAxis.rememberStart(
-                                title = "Weight (kg)",
-                                titleComponent = rememberAxisLabelComponent()
-                            ),
-                            bottomAxis = HorizontalAxis.rememberBottom(
-                                valueFormatter = dateAxisFormatter
-                            ),
-                            marker = marker
-                        ),
-                        modelProducer = modelProducer,
-                        zoomState = rememberVicoZoomState(zoomEnabled = false),
-                        modifier = Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
-                    )
+
+                val sortedMonths = remember(monthlyChartData) { monthlyChartData.keys.sorted() }
+                var currentMonthIndex by remember(sortedMonths) {
+                    val nowIndex = sortedMonths.indexOf(YearMonth.now())
+                    mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
+                }
+
+                if (sortedMonths.isNotEmpty()) {
+                    val currentMonth = sortedMonths[currentMonthIndex]
+                    val sessionCount = monthlyChartData[currentMonth]?.size ?: 0
+                    val points = monthlyChartData[currentMonth].orEmpty()
+
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { currentMonthIndex-- },
+                                    enabled = currentMonthIndex > 0,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                        contentDescription = "Previous month",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Text(
+                                    "${currentMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${currentMonth.year} · $sessionCount session${if (sessionCount == 1) "" else "s"}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                IconButton(
+                                    onClick = { currentMonthIndex++ },
+                                    enabled = currentMonthIndex < sortedMonths.size - 1,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = "Next month",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            MonthChart(month = currentMonth, points = points)
+                        }
+                    }
                 }
             } else if (stats != null) {
                 Text(
@@ -144,6 +172,148 @@ fun ExerciseDetailScreen(
                     modifier = Modifier.padding(top = 16.dp),
                     textAlign = TextAlign.Center
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthChart(
+    month: YearMonth,
+    points: List<ExerciseSessionDataPoint>
+) {
+    val daysInMonth = month.lengthOfMonth()
+    val pointsByDay = remember(points) {
+        points.associateBy { p ->
+            Instant.ofEpochMilli(p.startedAt).atZone(ZoneId.systemDefault()).toLocalDate().dayOfMonth
+        }
+    }
+
+    if (points.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxWidth().height(180.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "No sessions logged in ${month.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
+    val maxWeight = remember(points) { (points.maxOfOrNull { it.avgWeightKg } ?: 1f).coerceAtLeast(1f) }
+    var selectedDay by remember(month) { mutableStateOf<Int?>(null) }
+    var tooltipWidthPx by remember { mutableIntStateOf(0) }
+
+    val barColor = MaterialTheme.colorScheme.primary
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(fontSize = 11.sp, color = axisColor)
+    val density = LocalDensity.current
+
+    val leftPadDp = 16.dp
+    val bottomPadDp = 24.dp
+    val chartHeightDp = 180.dp
+    val plotHeightDp = chartHeightDp - bottomPadDp
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(chartHeightDp)) {
+        val plotWidthDp = maxWidth - leftPadDp
+        val slotWidthDp = plotWidthDp / daysInMonth
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(month, daysInMonth, slotWidthDp) {
+                    val leftPadPx = leftPadDp.toPx()
+                    val slotWidthPx = slotWidthDp.toPx()
+                    detectTapGestures { offset ->
+                        val day = ((offset.x - leftPadPx) / slotWidthPx).toInt() + 1
+                        val tappedValidDay = day in 1..daysInMonth && pointsByDay.containsKey(day)
+                        selectedDay = if (tappedValidDay && day == selectedDay) null else if (tappedValidDay) day else selectedDay
+                    }
+                }
+        ) {
+            val leftPad = leftPadDp.toPx()
+            val bottomPad = bottomPadDp.toPx()
+            val plotWidth = size.width - leftPad
+            val plotHeight = size.height - bottomPad
+            val slotWidth = plotWidth / daysInMonth
+
+            val ySteps = 4
+            for (i in 0..ySteps) {
+                val value = (maxWeight * i / ySteps)
+                val y = plotHeight - (plotHeight * i / ySteps)
+                val result = textMeasurer.measure(value.roundToInt().toString(), labelStyle)
+                drawText(
+                    textLayoutResult = result,
+                    topLeft = Offset(leftPad - result.size.width - 6.dp.toPx(), y - result.size.height / 2f)
+                )
+            }
+
+            val dashLen = slotWidth * 0.5f
+            for (day in 1..daysInMonth) {
+                val startX = leftPad + (day - 1) * slotWidth + (slotWidth - dashLen) / 2f
+                drawLine(
+                    color = axisColor.copy(alpha = 0.4f),
+                    start = Offset(startX, plotHeight),
+                    end = Offset(startX + dashLen, plotHeight),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+
+            var day = 1
+            while (day <= daysInMonth) {
+                val centerX = leftPad + (day - 0.5f) * slotWidth
+                val result = textMeasurer.measure(day.toString(), labelStyle)
+                drawText(
+                    textLayoutResult = result,
+                    topLeft = Offset(centerX - result.size.width / 2f, plotHeight + 4.dp.toPx())
+                )
+                day += 5
+            }
+
+            val barWidth = slotWidth * 0.6f
+            pointsByDay.forEach { (d, point) ->
+                val barHeight = (point.avgWeightKg / maxWeight) * plotHeight
+                val x = leftPad + (d - 1) * slotWidth + (slotWidth - barWidth) / 2f
+                val color = if (d == selectedDay) barColor.copy(alpha = 0.7f) else barColor
+                drawRect(
+                    color = color,
+                    topLeft = Offset(x, plotHeight - barHeight),
+                    size = Size(barWidth, barHeight)
+                )
+            }
+        }
+
+        selectedDay?.let { day ->
+            val point = pointsByDay[day]
+            if (point != null) {
+                val barTopFraction = point.avgWeightKg / maxWeight
+                val barTopDp = plotHeightDp * (1f - barTopFraction)
+                val centerXDp = leftPadDp + (day - 0.5f) * slotWidthDp
+                val tooltipWidthDp = with(density) { tooltipWidthPx.toDp() }
+
+                Card(
+                    modifier = Modifier
+                        .offset(x = centerXDp - tooltipWidthDp / 2f, y = (barTopDp - 25.dp).coerceAtLeast(0.dp))
+                        .onGloballyPositioned { coordinates ->
+                            tooltipWidthPx = coordinates.size.width
+                        },
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.9f)
+                    )
+                ) {
+                    Text(
+                        "${point.avgWeightKg.roundToInt()}kg",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

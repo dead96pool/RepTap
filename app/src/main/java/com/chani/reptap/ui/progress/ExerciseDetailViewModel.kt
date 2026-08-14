@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.dao.ExerciseDetailStats
 import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
+import com.chani.reptap.data.local.dao.ExerciseSetDetail
 import com.chani.reptap.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
 
 class ExerciseDetailViewModel(
     private val repository: WorkoutRepository,
@@ -21,8 +25,11 @@ class ExerciseDetailViewModel(
     private val _percentChange = MutableStateFlow<Double?>(null)
     val percentChange: StateFlow<Double?> = _percentChange.asStateFlow()
 
-    private val _chartData = MutableStateFlow<List<ExerciseSessionDataPoint>>(emptyList())
-    val chartData: StateFlow<List<ExerciseSessionDataPoint>> = _chartData.asStateFlow()
+    private val _monthlyChartData = MutableStateFlow<Map<YearMonth, List<ExerciseSessionDataPoint>>>(emptyMap())
+    val monthlyChartData: StateFlow<Map<YearMonth, List<ExerciseSessionDataPoint>>> = _monthlyChartData.asStateFlow()
+
+    private val _setDetailsBySession = MutableStateFlow<Map<Long, List<ExerciseSetDetail>>>(emptyMap())
+    val setDetailsBySession: StateFlow<Map<Long, List<ExerciseSetDetail>>> = _setDetailsBySession.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -38,7 +45,25 @@ class ExerciseDetailViewModel(
                 _percentChange.value = if (earlier3 == 0.0) 0.0 else ((recent3 - earlier3) / earlier3) * 100.0
             }
 
-            _chartData.value = repository.getExerciseSessionDataPoints(exerciseId)
+            val points = repository.getExerciseSessionDataPoints(exerciseId)
+            val grouped = points.groupBy { point ->
+                val localDate = Instant.ofEpochMilli(point.startedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                YearMonth.from(localDate)
+            }
+
+            _monthlyChartData.value = if (grouped.isEmpty()) {
+                emptyMap()
+            } else {
+                val currentRealMonth = YearMonth.now()
+                val firstMonth = minOf(grouped.keys.min(), currentRealMonth).minusMonths(1)
+                val lastMonth = maxOf(grouped.keys.max(), currentRealMonth).plusMonths(1)
+                val allMonths = generateSequence(firstMonth) { it.plusMonths(1) }
+                    .takeWhile { !it.isAfter(lastMonth) }
+                allMonths.associateWith { month -> grouped[month].orEmpty() }
+            }
+
+            _setDetailsBySession.value = repository.getExerciseSetDetails(exerciseId)
+                .groupBy { it.sessionLogId }
         }
     }
 }

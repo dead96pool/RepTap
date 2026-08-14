@@ -47,6 +47,13 @@ data class ExerciseSessionDataPoint(
     val maxWeightKg: Float
 )
 
+data class ExerciseSetDetail(
+    val sessionLogId: Long,
+    val setNumber: Int,
+    val weightKg: Float,
+    val repsCompleted: Int
+)
+
 @Dao
 interface SetLogDao {
     @Insert
@@ -136,4 +143,14 @@ interface SetLogDao {
     ORDER BY sl.startedAt ASC
 """)
     suspend fun getExerciseSessionDataPoints(exerciseId: Long): List<ExerciseSessionDataPoint>
+
+    @Query("""
+    SELECT s.sessionLogId AS sessionLogId, s.setNumber AS setNumber, s.weightKg AS weightKg, s.repsCompleted AS repsCompleted
+    FROM set_logs s
+    INNER JOIN workout_exercises we ON s.workoutExerciseId = we.id
+    INNER JOIN session_logs sl ON s.sessionLogId = sl.id
+    WHERE we.exerciseId = :exerciseId AND sl.status = 'COMPLETED'
+    ORDER BY sl.startedAt ASC, s.setNumber ASC
+""")
+    suspend fun getExerciseSetDetails(exerciseId: Long): List<ExerciseSetDetail>
 }

@@ -36,6 +36,8 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun getExerciseSessionDataPoints(exerciseId: Long) = db.setLogDao().getExerciseSessionDataPoints(exerciseId)
 
+    suspend fun getExerciseSetDetails(exerciseId: Long) = db.setLogDao().getExerciseSetDetails(exerciseId)
+
     suspend fun getExerciseDetailStats(exerciseId: Long) = db.setLogDao().getExerciseDetailStats(exerciseId)
 
     fun getSetDetailsForSession(sessionId: Long) = db.setLogDao().getSetDetailsForSession(sessionId)
