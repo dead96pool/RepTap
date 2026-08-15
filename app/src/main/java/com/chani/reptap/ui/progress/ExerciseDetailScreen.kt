@@ -132,29 +132,66 @@ fun ExerciseDetailScreen(
             )
 
             if (monthlyChartData.isNotEmpty()) {
-                Text(
-                    "Weight Over Time",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
-                )
-
                 val sortedMonths = remember(monthlyChartData) { monthlyChartData.keys.sorted() }
 
                 val globalMaxWeight = remember(monthlyChartData) {
                     monthlyChartData.values.flatten().maxOfOrNull { it.avgWeightKg } ?: 1f
                 }
                 val (niceAxisMax, axisStep) = remember(globalMaxWeight) { niceAxisMaximum(globalMaxWeight) }
+                val globalMaxReps = remember(monthlyChartData) {
+                    monthlyChartData.values.flatten().maxOfOrNull { it.avgReps.toFloat() } ?: 1f
+                }
+                val (niceRepsAxisMax, repsAxisStep) = remember(globalMaxReps) { niceAxisMaximum(globalMaxReps) }
+                val globalMaxVolume = remember(monthlyChartData) {
+                    monthlyChartData.values.flatten().maxOfOrNull { it.totalVolume.toFloat() } ?: 1f
+                }
+                val (niceVolumeAxisMax, volumeAxisStep) = remember(globalMaxVolume) { niceAxisMaximum(globalMaxVolume) }
 
-                var currentMonthIndex by remember(sortedMonths) {
+                val sharedTextMeasurer = rememberTextMeasurer()
+                val sharedDensity = LocalDensity.current
+                val sharedLeftPadDp = remember(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax) {
+                    val allMaxValues = listOf(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax)
+                    val widestPx = allMaxValues.maxOf { maxVal ->
+                        sharedTextMeasurer.measure(
+                            maxVal.roundToInt().toString(),
+                            androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+                        ).size.width
+                    }
+                    with(sharedDensity) { widestPx.toDp() } + 4.dp
+                }
+
+                var weightMonthIndex by remember(sortedMonths) {
+                    val nowIndex = sortedMonths.indexOf(YearMonth.now())
+                    mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
+                }
+                var repsMonthIndex by remember(sortedMonths) {
+                    val nowIndex = sortedMonths.indexOf(YearMonth.now())
+                    mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
+                }
+                var volumeMonthIndex by remember(sortedMonths) {
                     val nowIndex = sortedMonths.indexOf(YearMonth.now())
                     mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
                 }
 
                 if (sortedMonths.isNotEmpty()) {
-                    val currentMonth = sortedMonths[currentMonthIndex]
-                    val sessionCount = monthlyChartData[currentMonth]?.size ?: 0
-                    val points = monthlyChartData[currentMonth].orEmpty()
+                    val weightMonth = sortedMonths[weightMonthIndex]
+                    val weightSessionCount = monthlyChartData[weightMonth]?.size ?: 0
+                    val weightPoints = monthlyChartData[weightMonth].orEmpty()
+
+                    val repsMonth = sortedMonths[repsMonthIndex]
+                    val repsSessionCount = monthlyChartData[repsMonth]?.size ?: 0
+                    val repsPoints = monthlyChartData[repsMonth].orEmpty()
+
+                    val volumeMonth = sortedMonths[volumeMonthIndex]
+                    val volumeSessionCount = monthlyChartData[volumeMonth]?.size ?: 0
+                    val volumePoints = monthlyChartData[volumeMonth].orEmpty()
+
+                    Text(
+                        "Weight Over Time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
 
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
@@ -164,8 +201,8 @@ fun ExerciseDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 IconButton(
-                                    onClick = { currentMonthIndex-- },
-                                    enabled = currentMonthIndex > 0,
+                                    onClick = { weightMonthIndex-- },
+                                    enabled = weightMonthIndex > 0,
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
@@ -175,13 +212,13 @@ fun ExerciseDetailScreen(
                                     )
                                 }
                                 Text(
-                                    "${currentMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${currentMonth.year} · $sessionCount session${if (sessionCount == 1) "" else "s"}",
+                                    "${weightMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${weightMonth.year} · $weightSessionCount session${if (weightSessionCount == 1) "" else "s"}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 IconButton(
-                                    onClick = { currentMonthIndex++ },
-                                    enabled = currentMonthIndex < sortedMonths.size - 1,
+                                    onClick = { weightMonthIndex++ },
+                                    enabled = weightMonthIndex < sortedMonths.size - 1,
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
@@ -191,7 +228,115 @@ fun ExerciseDetailScreen(
                                     )
                                 }
                             }
-                            MonthChart(month = currentMonth, points = points, axisMax = niceAxisMax, axisStep = axisStep)
+                            MonthChart(
+                                month = weightMonth,
+                                points = weightPoints,
+                                axisMax = niceAxisMax,
+                                axisStep = axisStep,
+                                valueSelector = { it.avgWeightKg },
+                                unitLabel = "kg",
+                                leftPadDp = sharedLeftPadDp
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Reps Over Time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
+
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { repsMonthIndex-- },
+                                    enabled = repsMonthIndex > 0,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                        contentDescription = "Previous month",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Text(
+                                    "${repsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${repsMonth.year} · $repsSessionCount session${if (repsSessionCount == 1) "" else "s"}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                IconButton(
+                                    onClick = { repsMonthIndex++ },
+                                    enabled = repsMonthIndex < sortedMonths.size - 1,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = "Next month",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            MonthChart(
+                                month = repsMonth,
+                                points = repsPoints,
+                                axisMax = niceRepsAxisMax,
+                                axisStep = repsAxisStep,
+                                valueSelector = { it.avgReps.toFloat() },
+                                unitLabel = "",
+                                leftPadDp = sharedLeftPadDp
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Volume Over Time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
+
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { volumeMonthIndex-- },
+                                    enabled = volumeMonthIndex > 0,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
+                                }
+                                Text(
+                                    "${volumeMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${volumeMonth.year} · $volumeSessionCount session${if (volumeSessionCount == 1) "" else "s"}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                IconButton(
+                                    onClick = { volumeMonthIndex++ },
+                                    enabled = volumeMonthIndex < sortedMonths.size - 1,
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            MonthChart(
+                                month = volumeMonth,
+                                points = volumePoints,
+                                axisMax = niceVolumeAxisMax,
+                                axisStep = volumeAxisStep,
+                                valueSelector = { it.totalVolume.toFloat() },
+                                unitLabel = "",
+                                leftPadDp = sharedLeftPadDp
+                            )
                         }
                     }
                 }
@@ -213,7 +358,10 @@ private fun MonthChart(
     month: YearMonth,
     points: List<ExerciseSessionDataPoint>,
     axisMax: Float,
-    axisStep: Float
+    axisStep: Float,
+    valueSelector: (ExerciseSessionDataPoint) -> Float,
+    unitLabel: String,
+    leftPadDp: androidx.compose.ui.unit.Dp
 ) {
     val daysInMonth = month.lengthOfMonth()
     val pointsByDay = remember(points) {
@@ -247,7 +395,6 @@ private fun MonthChart(
     val labelStyle = TextStyle(fontSize = 11.sp, color = axisColor)
     val density = LocalDensity.current
 
-    val leftPadDp = 16.dp
     val bottomPadDp = 24.dp
     val chartHeightDp = 180.dp
     val plotHeightDp = chartHeightDp - bottomPadDp
@@ -318,7 +465,7 @@ private fun MonthChart(
 
             val barWidth = slotWidth * 0.6f
             pointsByDay.forEach { (d, point) ->
-                val barHeight = (point.avgWeightKg / maxWeight) * plotHeight
+                val barHeight = (valueSelector(point) / maxWeight) * plotHeight
                 val x = leftPad + (d - 1) * slotWidth + (slotWidth - barWidth) / 2f
                 val color = if (d == selectedDay) barColor.copy(alpha = 0.7f) else barColor
                 drawRect(
@@ -332,7 +479,7 @@ private fun MonthChart(
         selectedDay?.let { day ->
             val point = pointsByDay[day]
             if (point != null) {
-                val barTopFraction = point.avgWeightKg / maxWeight
+                val barTopFraction = valueSelector(point) / maxWeight
                 val barTopDp = plotHeightDp * (1f - barTopFraction)
                 val centerXDp = leftPadDp + (day - 0.5f) * slotWidthDp
                 val tooltipWidthDp = with(density) { tooltipWidthPx.toDp() }
@@ -348,7 +495,7 @@ private fun MonthChart(
                     )
                 ) {
                     Text(
-                        "${formatDecimal(point.avgWeightKg)}kg",
+                        "${formatDecimal(valueSelector(point))}$unitLabel",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         color = MaterialTheme.colorScheme.inverseOnSurface,
                         style = MaterialTheme.typography.labelMedium,
