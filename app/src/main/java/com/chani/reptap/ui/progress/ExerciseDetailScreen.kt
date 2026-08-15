@@ -59,6 +59,31 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Locale
 
+private fun niceAxisMaximum(rawMax: Float): Pair<Float, Float> {
+    if (rawMax <= 0f) return 5f to 1f
+    val step = rawMax / 4f
+    val magnitude = Math.pow(10.0, Math.floor(Math.log10(step.toDouble()))).toFloat()
+    val normalized = step / magnitude
+    val niceStep = when {
+        normalized <= 1f -> 1f
+        normalized <= 2f -> 2f
+        normalized <= 5f -> 5f
+        else -> 10f
+    } * magnitude
+    var axisMax = niceStep * 4f
+    while (axisMax < rawMax) axisMax += niceStep
+    axisMax += niceStep
+    return axisMax to niceStep
+}
+
+private fun formatDecimal(value: Float): String {
+    return if (value == value.roundToInt().toFloat()) {
+        value.roundToInt().toString()
+    } else {
+        "%.1f".format(value)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseDetailScreen(
@@ -115,6 +140,12 @@ fun ExerciseDetailScreen(
                 )
 
                 val sortedMonths = remember(monthlyChartData) { monthlyChartData.keys.sorted() }
+
+                val globalMaxWeight = remember(monthlyChartData) {
+                    monthlyChartData.values.flatten().maxOfOrNull { it.avgWeightKg } ?: 1f
+                }
+                val (niceAxisMax, axisStep) = remember(globalMaxWeight) { niceAxisMaximum(globalMaxWeight) }
+
                 var currentMonthIndex by remember(sortedMonths) {
                     val nowIndex = sortedMonths.indexOf(YearMonth.now())
                     mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
@@ -160,7 +191,7 @@ fun ExerciseDetailScreen(
                                     )
                                 }
                             }
-                            MonthChart(month = currentMonth, points = points)
+                            MonthChart(month = currentMonth, points = points, axisMax = niceAxisMax, axisStep = axisStep)
                         }
                     }
                 }
@@ -180,7 +211,9 @@ fun ExerciseDetailScreen(
 @Composable
 private fun MonthChart(
     month: YearMonth,
-    points: List<ExerciseSessionDataPoint>
+    points: List<ExerciseSessionDataPoint>,
+    axisMax: Float,
+    axisStep: Float
 ) {
     val daysInMonth = month.lengthOfMonth()
     val pointsByDay = remember(points) {
@@ -204,7 +237,7 @@ private fun MonthChart(
         return
     }
 
-    val maxWeight = remember(points) { (points.maxOfOrNull { it.avgWeightKg } ?: 1f).coerceAtLeast(1f) }
+    val maxWeight = axisMax
     var selectedDay by remember(month) { mutableStateOf<Int?>(null) }
     var tooltipWidthPx by remember { mutableIntStateOf(0) }
 
@@ -242,10 +275,18 @@ private fun MonthChart(
             val plotHeight = size.height - bottomPad
             val slotWidth = plotWidth / daysInMonth
 
-            val ySteps = 4
+            val ySteps = (axisMax / axisStep).roundToInt()
             for (i in 0..ySteps) {
                 val value = (maxWeight * i / ySteps)
                 val y = plotHeight - (plotHeight * i / ySteps)
+
+                drawLine(
+                    color = axisColor.copy(alpha = 0.15f),
+                    start = Offset(leftPad, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+
                 val result = textMeasurer.measure(value.roundToInt().toString(), labelStyle)
                 drawText(
                     textLayoutResult = result,
@@ -307,7 +348,7 @@ private fun MonthChart(
                     )
                 ) {
                     Text(
-                        "${point.avgWeightKg.roundToInt()}kg",
+                        "${formatDecimal(point.avgWeightKg)}kg",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         color = MaterialTheme.colorScheme.inverseOnSurface,
                         style = MaterialTheme.typography.labelMedium,
