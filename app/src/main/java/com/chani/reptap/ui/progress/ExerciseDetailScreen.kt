@@ -149,11 +149,20 @@ fun ExerciseDetailScreen(
                     monthlyChartData.values.flatten().maxOfOrNull { it.totalVolume.toFloat() } ?: 1f
                 }
                 val (niceVolumeAxisMax, volumeAxisStep) = remember(globalMaxVolume) { niceAxisMaximum(globalMaxVolume) }
+                val globalMaxBestReps = remember(monthlyChartData) {
+                    monthlyChartData.values.flatten().maxOfOrNull { it.maxReps.toFloat() } ?: 1f
+                }
+                val (niceBestRepsAxisMax, bestRepsAxisStep) = remember(globalMaxBestReps) { niceAxisMaximum(globalMaxBestReps) }
+
+                val globalMaxSets = remember(monthlyChartData) {
+                    monthlyChartData.values.flatten().maxOfOrNull { it.setsCount.toFloat() } ?: 1f
+                }
+                val (niceSetsAxisMax, setsAxisStep) = remember(globalMaxSets) { niceAxisMaximum(globalMaxSets) }
 
                 val sharedTextMeasurer = rememberTextMeasurer()
                 val sharedDensity = LocalDensity.current
                 val sharedLeftPadDp = remember(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax) {
-                    val allMaxValues = listOf(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax)
+                    val allMaxValues = listOf(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax, niceBestRepsAxisMax, niceSetsAxisMax)
                     val widestPx = allMaxValues.maxOf { maxVal ->
                         sharedTextMeasurer.measure(
                             maxVal.roundToInt().toString(),
@@ -175,6 +184,14 @@ fun ExerciseDetailScreen(
                     val nowIndex = sortedMonths.indexOf(YearMonth.now())
                     mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
                 }
+                var bestRepsMonthIndex by remember(sortedMonths) {
+                    val nowIndex = sortedMonths.indexOf(YearMonth.now())
+                    mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
+                }
+                var setsMonthIndex by remember(sortedMonths) {
+                    val nowIndex = sortedMonths.indexOf(YearMonth.now())
+                    mutableStateOf(if (nowIndex >= 0) nowIndex else (sortedMonths.size - 1).coerceAtLeast(0))
+                }
 
                 if (sortedMonths.isNotEmpty()) {
                     val weightMonth = sortedMonths[weightMonthIndex]
@@ -188,6 +205,14 @@ fun ExerciseDetailScreen(
                     val volumeMonth = sortedMonths[volumeMonthIndex]
                     val volumeSessionCount = monthlyChartData[volumeMonth]?.size ?: 0
                     val volumePoints = monthlyChartData[volumeMonth].orEmpty()
+
+                    val bestRepsMonth = sortedMonths[bestRepsMonthIndex]
+                    val bestRepsSessionCount = monthlyChartData[bestRepsMonth]?.size ?: 0
+                    val bestRepsPoints = monthlyChartData[bestRepsMonth].orEmpty()
+
+                    val setsMonth = sortedMonths[setsMonthIndex]
+                    val setsSessionCount = monthlyChartData[setsMonth]?.size ?: 0
+                    val setsPoints = monthlyChartData[setsMonth].orEmpty()
 
                     Text(
                         "Weight Over Time",
@@ -339,6 +364,82 @@ fun ExerciseDetailScreen(
                                 axisMax = niceVolumeAxisMax,
                                 axisStep = volumeAxisStep,
                                 valueSelector = { it.totalVolume.toFloat() },
+                                unitLabel = "",
+                                leftPadDp = sharedLeftPadDp,
+                                setDetailsBySession = setDetailsBySession
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Best Single-Set Reps Over Time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = { bestRepsMonthIndex-- }, enabled = bestRepsMonthIndex > 0, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
+                                }
+                                Text(
+                                    "${bestRepsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${bestRepsMonth.year} (${bestRepsSessionCount} session${if (bestRepsSessionCount != 1) "s" else ""})",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                IconButton(onClick = { bestRepsMonthIndex++ }, enabled = bestRepsMonthIndex < sortedMonths.size - 1, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            MonthChart(
+                                month = bestRepsMonth,
+                                points = bestRepsPoints,
+                                axisMax = niceBestRepsAxisMax,
+                                axisStep = bestRepsAxisStep,
+                                valueSelector = { it.maxReps.toFloat() },
+                                unitLabel = "",
+                                leftPadDp = sharedLeftPadDp,
+                                setDetailsBySession = setDetailsBySession
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Sets Per Session Over Time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = { setsMonthIndex-- }, enabled = setsMonthIndex > 0, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
+                                }
+                                Text(
+                                    "${setsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${setsMonth.year} (${setsSessionCount} session${if (setsSessionCount != 1) "s" else ""})",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                IconButton(onClick = { setsMonthIndex++ }, enabled = setsMonthIndex < sortedMonths.size - 1, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            MonthChart(
+                                month = setsMonth,
+                                points = setsPoints,
+                                axisMax = niceSetsAxisMax,
+                                axisStep = setsAxisStep,
+                                valueSelector = { it.setsCount.toFloat() },
                                 unitLabel = "",
                                 leftPadDp = sharedLeftPadDp,
                                 setDetailsBySession = setDetailsBySession

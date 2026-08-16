@@ -44,7 +44,9 @@ data class ExerciseSessionDataPoint(
     val avgWeightKg: Float,
     val avgReps: Double,
     val totalVolume: Double,
-    val maxWeightKg: Float
+    val maxWeightKg: Float,
+    val maxReps: Int,
+    val setsCount: Int
 )
 
 data class ExerciseSetDetail(
@@ -128,13 +130,10 @@ interface SetLogDao {
     suspend fun getExerciseDetailStats(exerciseId: Long): ExerciseDetailStats?
 
     @Query("""
-    SELECT 
-        s.sessionLogId AS sessionId,
-        sl.startedAt AS startedAt,
-        AVG(s.weightKg) AS avgWeightKg,
-        AVG(s.repsCompleted) AS avgReps,
-        SUM(s.weightKg * s.repsCompleted) AS totalVolume,
-        MAX(s.weightKg) AS maxWeightKg
+    SELECT s.sessionLogId AS sessionId, sl.startedAt AS startedAt,
+           AVG(s.weightKg) AS avgWeightKg, AVG(s.repsCompleted) AS avgReps,
+           SUM(s.weightKg * s.repsCompleted) AS totalVolume, MAX(s.weightKg) AS maxWeightKg,
+           MAX(s.repsCompleted) AS maxReps, COUNT(s.id) AS setsCount
     FROM set_logs s
     INNER JOIN workout_exercises we ON s.workoutExerciseId = we.id
     INNER JOIN session_logs sl ON s.sessionLogId = sl.id
