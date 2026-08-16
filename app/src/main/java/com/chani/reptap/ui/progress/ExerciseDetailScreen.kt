@@ -2,6 +2,9 @@ package com.chani.reptap.ui.progress
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -235,7 +238,8 @@ fun ExerciseDetailScreen(
                                 axisStep = axisStep,
                                 valueSelector = { it.avgWeightKg },
                                 unitLabel = "kg",
-                                leftPadDp = sharedLeftPadDp
+                                leftPadDp = sharedLeftPadDp,
+                                setDetailsBySession = setDetailsBySession
                             )
                         }
                     }
@@ -289,7 +293,8 @@ fun ExerciseDetailScreen(
                                 axisStep = repsAxisStep,
                                 valueSelector = { it.avgReps.toFloat() },
                                 unitLabel = "",
-                                leftPadDp = sharedLeftPadDp
+                                leftPadDp = sharedLeftPadDp,
+                                setDetailsBySession = setDetailsBySession
                             )
                         }
                     }
@@ -335,7 +340,8 @@ fun ExerciseDetailScreen(
                                 axisStep = volumeAxisStep,
                                 valueSelector = { it.totalVolume.toFloat() },
                                 unitLabel = "",
-                                leftPadDp = sharedLeftPadDp
+                                leftPadDp = sharedLeftPadDp,
+                                setDetailsBySession = setDetailsBySession
                             )
                         }
                     }
@@ -361,7 +367,8 @@ private fun MonthChart(
     axisStep: Float,
     valueSelector: (ExerciseSessionDataPoint) -> Float,
     unitLabel: String,
-    leftPadDp: androidx.compose.ui.unit.Dp
+    leftPadDp: androidx.compose.ui.unit.Dp,
+    setDetailsBySession: Map<Long, List<ExerciseSetDetail>>
 ) {
     val daysInMonth = month.lengthOfMonth()
     val pointsByDay = remember(points) {
@@ -388,6 +395,7 @@ private fun MonthChart(
     val maxWeight = axisMax
     var selectedDay by remember(month) { mutableStateOf<Int?>(null) }
     var tooltipWidthPx by remember { mutableIntStateOf(0) }
+    var tooltipHeightPx by remember { mutableIntStateOf(0) }
 
     val barColor = MaterialTheme.colorScheme.primary
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -409,10 +417,26 @@ private fun MonthChart(
                 .pointerInput(month, daysInMonth, slotWidthDp) {
                     val leftPadPx = leftPadDp.toPx()
                     val slotWidthPx = slotWidthDp.toPx()
-                    detectTapGestures { offset ->
-                        val day = ((offset.x - leftPadPx) / slotWidthPx).toInt() + 1
-                        val tappedValidDay = day in 1..daysInMonth && pointsByDay.containsKey(day)
-                        selectedDay = if (tappedValidDay && day == selectedDay) null else if (tappedValidDay) day else selectedDay
+
+                    fun dayAt(x: Float): Int = ((x - leftPadPx) / slotWidthPx).toInt() + 1
+
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        val downDay = dayAt(down.position.x)
+                        val downValid = downDay in 1..daysInMonth && pointsByDay.containsKey(downDay)
+
+                        selectedDay = when {
+                            downValid && downDay == selectedDay -> null
+                            downValid -> downDay
+                            else -> null
+                        }
+
+                        drag(down.id) { change ->
+                            val day = dayAt(change.position.x)
+                            val valid = day in 1..daysInMonth && pointsByDay.containsKey(day)
+                            if (valid) selectedDay = day
+                            change.consume()
+                        }
                     }
                 }
         ) {
@@ -483,24 +507,43 @@ private fun MonthChart(
                 val barTopDp = plotHeightDp * (1f - barTopFraction)
                 val centerXDp = leftPadDp + (day - 0.5f) * slotWidthDp
                 val tooltipWidthDp = with(density) { tooltipWidthPx.toDp() }
-
+                val tooltipHeightDp = with(density) { tooltipHeightPx.toDp() }
+                val gapDp = 6.dp
+                val rawXDp = centerXDp - tooltipWidthDp / 2f
+                val minXDp = leftPadDp
+                val maxXDp = (leftPadDp + plotWidthDp - tooltipWidthDp).coerceAtLeast(leftPadDp)
+                val clampedXDp = rawXDp.coerceIn(minXDp, maxXDp)
+                val clampedYDp = (barTopDp - tooltipHeightDp - gapDp).coerceAtLeast(0.dp)
+                val sets = setDetailsBySession[point.sessionId].orEmpty().sortedBy { it.setNumber }
                 Card(
                     modifier = Modifier
-                        .offset(x = centerXDp - tooltipWidthDp / 2f, y = (barTopDp - 25.dp).coerceAtLeast(0.dp))
+                        .offset(x = clampedXDp, y = clampedYDp)
                         .onGloballyPositioned { coordinates ->
                             tooltipWidthPx = coordinates.size.width
+                            tooltipHeightPx = coordinates.size.height
                         },
                     colors = androidx.compose.material3.CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.9f)
                     )
                 ) {
-                    Text(
-                        "${formatDecimal(valueSelector(point))}$unitLabel",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.inverseOnSurface,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            formatDecimal(valueSelector(point)) + unitLabel,
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        sets.forEach { set ->
+                            Text(
+                                "${set.repsCompleted}reps\u2022${formatDecimal(set.weightKg)}kg",
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
             }
         }
