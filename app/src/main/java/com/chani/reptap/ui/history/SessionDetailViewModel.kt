@@ -30,6 +30,9 @@ class SessionDetailViewModel(
     private val _previousSession = MutableStateFlow<SessionRecap?>(null)
     val previousSession: StateFlow<SessionRecap?> = _previousSession.asStateFlow()
 
+    private val _currentSessionRecap = MutableStateFlow<SessionRecap?>(null)
+    val currentSessionRecap: StateFlow<SessionRecap?> = _currentSessionRecap.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.getSetDetailsForSession(sessionId).collect { list ->
@@ -39,6 +42,9 @@ class SessionDetailViewModel(
         }
         viewModelScope.launch {
             _previousSession.value = repository.getPreviousSessionForDay(workoutDayId, currentStartedAt)
+        }
+        viewModelScope.launch {
+            _currentSessionRecap.value = repository.getSessionRecapById(sessionId)
         }
     }
 }

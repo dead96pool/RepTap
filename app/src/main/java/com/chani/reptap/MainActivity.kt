@@ -143,18 +143,20 @@ class MainActivity : ComponentActivity() {
                                 viewModel = historyViewModel,
                                 onBack = { navController.popBackStack() },
                                 onSessionClick = { session ->
-                                    navController.navigate("session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}")
+                                    navController.navigate("session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}/${session.totalSets}/${session.totalReps}")
                                 }
                             )
                         }
                         composable(
-                            route = "session_detail/{sessionId}/{workoutDayId}/{dayName}/{startedAt}/{finishedAt}",
+                            route = "session_detail/{sessionId}/{workoutDayId}/{dayName}/{startedAt}/{finishedAt}/{totalSets}/{totalReps}",
                             arguments = listOf(
                                 navArgument("sessionId") { type = NavType.LongType },
                                 navArgument("workoutDayId") { type = NavType.LongType },
                                 navArgument("dayName") { type = NavType.StringType },
                                 navArgument("startedAt") { type = NavType.LongType },
-                                navArgument("finishedAt") { type = NavType.LongType }
+                                navArgument("finishedAt") { type = NavType.LongType },
+                                navArgument("totalSets") { type = NavType.IntType },
+                                navArgument("totalReps") { type = NavType.IntType }
                             )
                         ) { backStackEntry ->
                             val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
@@ -162,10 +164,18 @@ class MainActivity : ComponentActivity() {
                             val dayName = backStackEntry.arguments?.getString("dayName") ?: ""
                             val startedAt = backStackEntry.arguments?.getLong("startedAt") ?: 0L
                             val finishedAt = backStackEntry.arguments?.getLong("finishedAt") ?: 0L
+                            val totalSets = backStackEntry.arguments?.getInt("totalSets") ?: 0
+                            val totalReps = backStackEntry.arguments?.getInt("totalReps") ?: 0
 
                             val currentSession = com.chani.reptap.data.local.dao.SessionRecap(
-                                id = sessionId, workoutDayId = workoutDayId, workoutDayName = dayName,
-                                startedAt = startedAt, finishedAt = finishedAt, totalSets = 0, totalReps = 0
+                                id = sessionId,
+                                workoutDayId = workoutDayId,
+                                workoutDayName = dayName,
+                                startedAt = startedAt,
+                                finishedAt = finishedAt,
+                                totalSets = totalSets,
+                                totalReps = totalReps,
+                                avgWeightKg = 0f
                             )
 
                             val detailViewModel: SessionDetailViewModel = viewModel(

@@ -12,6 +12,7 @@ import com.chani.reptap.data.local.dao.SessionRecap
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -23,6 +24,7 @@ fun SessionDetailScreen(
 ) {
     val exerciseGroups by viewModel.exerciseGroups.collectAsState()
     val previousSession by viewModel.previousSession.collectAsState()
+    val currentSessionRecap by viewModel.currentSessionRecap.collectAsState()
     val timeFormat = remember { SimpleDateFormat("EEE, MMM d - h:mm a", Locale.getDefault()) }
 
     Scaffold(
@@ -38,7 +40,7 @@ fun SessionDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                RecapCard(currentSession, previousSession, timeFormat)
+                RecapCard(currentSessionRecap ?: currentSession, previousSession, timeFormat)
             }
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -70,21 +72,49 @@ private fun RecapCard(current: SessionRecap, previous: SessionRecap?, timeFormat
 
             if (previous != null) {
                 val prevDuration = TimeUnit.MILLISECONDS.toMinutes(previous.finishedAt - previous.startedAt)
-                val durationDiff = duration - prevDuration
+                val durationDiff = (duration - prevDuration).toInt()
+                val repsDiff = current.totalReps - previous.totalReps
+                val setsDiff = current.totalSets - previous.totalSets
+                val weightDiff = current.avgWeightKg - previous.avgWeightKg
                 Spacer(Modifier.height(12.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(12.dp))
                 Text("Compared to last time", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(4.dp))
-                val diffText = when {
-                    durationDiff > 0 -> "+$durationDiff min"
-                    durationDiff < 0 -> "$durationDiff min"
-                    else -> "Same duration"
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    DeltaStat(repsDiff, "reps")
+                    DeltaStat(setsDiff, "sets")
+                    DeltaStat(durationDiff, "min", invertColor = true)
+                    DeltaStatFloat(weightDiff, "kg")
                 }
-                Text(diffText, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
+}
+
+@Composable
+private fun DeltaStat(delta: Int, unit: String, invertColor: Boolean = false) {
+    val isPositive = if (invertColor) delta < 0 else delta > 0
+    val isNegative = if (invertColor) delta > 0 else delta < 0
+    val color = when {
+        isPositive -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        isNegative -> androidx.compose.ui.graphics.Color(0xFFC62828)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val sign = if (delta > 0) "+" else ""
+    Text("$sign$delta $unit", color = color, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+}
+
+@Composable
+private fun DeltaStatFloat(delta: Float, unit: String) {
+    val rounded = (delta * 10).roundToInt() / 10f
+    val color = when {
+        rounded > 0f -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        rounded < 0f -> androidx.compose.ui.graphics.Color(0xFFC62828)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val sign = if (rounded > 0) "+" else ""
+    Text("$sign$rounded $unit", color = color, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable

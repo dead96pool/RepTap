@@ -24,6 +24,9 @@ class WorkoutRepository(private val db: AppDatabase) {
     suspend fun getPreviousSessionForDay(workoutDayId: Long, currentStartedAt: Long) =
         db.sessionLogDao().getPreviousSessionForDay(workoutDayId, currentStartedAt)
 
+    suspend fun getSessionRecapById(sessionId: Long) =
+        db.sessionLogDao().getSessionRecapById(sessionId)
+
     suspend fun getTotalSessions() = db.sessionLogDao().getTotalSessionsCount()
 
     suspend fun getAverageDurationMillis() = db.sessionLogDao().getAverageDurationMillis()

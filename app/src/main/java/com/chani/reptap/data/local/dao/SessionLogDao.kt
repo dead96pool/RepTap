@@ -20,7 +20,8 @@ data class SessionRecap(
     val startedAt: Long,
     val finishedAt: Long,
     val totalSets: Int,
-    val totalReps: Int
+    val totalReps: Int,
+    val avgWeightKg: Float
 )
 
 data class SessionDateAndDay(
@@ -56,7 +57,8 @@ interface SessionLogDao {
         SELECT s.id AS id, s.workoutDayId AS workoutDayId, wd.name AS workoutDayName,
                s.startedAt AS startedAt, s.finishedAt AS finishedAt,
                (SELECT COUNT(*) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalSets,
-               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps
+               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps,
+               (SELECT COALESCE(AVG(sl.weightKg), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS avgWeightKg
         FROM session_logs s
         JOIN workout_days wd ON s.workoutDayId = wd.id
         WHERE s.status = 'COMPLETED'
@@ -68,7 +70,8 @@ interface SessionLogDao {
         SELECT s.id AS id, s.workoutDayId AS workoutDayId, wd.name AS workoutDayName,
                s.startedAt AS startedAt, s.finishedAt AS finishedAt,
                (SELECT COUNT(*) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalSets,
-               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps
+               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps,
+               (SELECT COALESCE(AVG(sl.weightKg), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS avgWeightKg
         FROM session_logs s
         JOIN workout_days wd ON s.workoutDayId = wd.id
         WHERE s.status = 'COMPLETED' AND s.workoutDayId = :workoutDayId AND s.startedAt < :currentStartedAt
@@ -76,6 +79,18 @@ interface SessionLogDao {
         LIMIT 1
     """)
     suspend fun getPreviousSessionForDay(workoutDayId: Long, currentStartedAt: Long): SessionRecap?
+
+    @Query("""
+        SELECT s.id AS id, s.workoutDayId AS workoutDayId, wd.name AS workoutDayName,
+               s.startedAt AS startedAt, s.finishedAt AS finishedAt,
+               (SELECT COUNT(*) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalSets,
+               (SELECT COALESCE(SUM(sl.repsCompleted), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS totalReps,
+               (SELECT COALESCE(AVG(sl.weightKg), 0) FROM set_logs sl WHERE sl.sessionLogId = s.id) AS avgWeightKg
+        FROM session_logs s
+        JOIN workout_days wd ON s.workoutDayId = wd.id
+        WHERE s.id = :sessionId
+    """)
+    suspend fun getSessionRecapById(sessionId: Long): SessionRecap?
 
     @Query("""
         SELECT startedAt, workoutDayId FROM session_logs
