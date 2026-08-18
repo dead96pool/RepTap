@@ -122,7 +122,6 @@ fun ExerciseDetailScreen(
                         DetailStatRow("Average Reps (per set)", "$avgReps")
                         DetailStatRow("Best Single Set", "${s.bestSingleSetReps} reps")
                         DetailStatRow("Sessions Logged", "${s.sessionsLogged}")
-                        DetailStatRow("Total Reps (all-time)", "${s.totalReps}")
                         DetailStatRow("Last Performed", dateFormat.format(java.util.Date(s.lastPerformedAt)))
                         TrendStatRow(percentChange)
                     }
