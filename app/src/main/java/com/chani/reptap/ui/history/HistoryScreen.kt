@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.dao.SessionRecap
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,7 +22,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     onSessionClick: (SessionRecap) -> Unit
 ) {
-    val sessions by viewModel.sessions.collectAsState()
+    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d - h:mm a", Locale.getDefault()) }
 
     if (sessions.isEmpty()) {

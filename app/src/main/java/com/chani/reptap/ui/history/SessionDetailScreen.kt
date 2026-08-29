@@ -128,6 +128,7 @@ private fun RecapRow(label: String, value: String) {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ExerciseRow(group: ExerciseGroup) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {

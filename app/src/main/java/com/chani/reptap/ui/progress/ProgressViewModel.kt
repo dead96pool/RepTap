@@ -8,6 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -33,11 +37,30 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
 
     init {
         viewModelScope.launch {
-            val totalSessions = repository.getTotalSessions()
-            val avgDuration = repository.getAverageDurationMillis() ?: 0L
-            val firstSessionDate = repository.getFirstSessionDate()
+            val (totalSessions, avgDuration, firstSessionDate) = coroutineScope {
+                val totalSessionsDeferred = async {
+                    repository.getTotalSessions()
+                }
 
-            val avgSessionsPerWeek = calculateAverageSessionsPerWeek(totalSessions, firstSessionDate)
+                val avgDurationDeferred = async {
+                    repository.getAverageDurationMillis() ?: 0L
+                }
+
+                val firstSessionDateDeferred = async {
+                    repository.getFirstSessionDate()
+                }
+
+                Triple(
+                    totalSessionsDeferred.await(),
+                    avgDurationDeferred.await(),
+                    firstSessionDateDeferred.await()
+                )
+            }
+
+            val avgSessionsPerWeek = calculateAverageSessionsPerWeek(
+                totalSessions,
+                firstSessionDate
+            )
 
             _summary.value = ProgressSummary(
                 totalSessions = totalSessions,
@@ -46,7 +69,10 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
             )
 
             val volumes = repository.getAllExerciseSessionVolumes()
-            _exerciseImprovements.value = calculateExerciseImprovements(volumes)
+
+            _exerciseImprovements.value = withContext(Dispatchers.Default) {
+                calculateExerciseImprovements(volumes)
+            }
         }
     }
 
@@ -54,11 +80,30 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
         viewModelScope.launch {
             repository.seedFakeProgressData()
 
-            val totalSessions = repository.getTotalSessions()
-            val avgDuration = repository.getAverageDurationMillis() ?: 0L
-            val firstSessionDate = repository.getFirstSessionDate()
+            val (totalSessions, avgDuration, firstSessionDate) = coroutineScope {
+                val totalSessionsDeferred = async {
+                    repository.getTotalSessions()
+                }
 
-            val avgSessionsPerWeek = calculateAverageSessionsPerWeek(totalSessions, firstSessionDate)
+                val avgDurationDeferred = async {
+                    repository.getAverageDurationMillis() ?: 0L
+                }
+
+                val firstSessionDateDeferred = async {
+                    repository.getFirstSessionDate()
+                }
+
+                Triple(
+                    totalSessionsDeferred.await(),
+                    avgDurationDeferred.await(),
+                    firstSessionDateDeferred.await()
+                )
+            }
+
+            val avgSessionsPerWeek = calculateAverageSessionsPerWeek(
+                totalSessions,
+                firstSessionDate
+            )
 
             _summary.value = ProgressSummary(
                 totalSessions = totalSessions,
@@ -67,7 +112,10 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
             )
 
             val volumes = repository.getAllExerciseSessionVolumes()
-            _exerciseImprovements.value = calculateExerciseImprovements(volumes)
+
+            _exerciseImprovements.value = withContext(Dispatchers.Default) {
+                calculateExerciseImprovements(volumes)
+            }
         }
     }
 

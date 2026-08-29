@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import androidx.compose.material3.Button
 import kotlinx.coroutines.launch
@@ -40,8 +41,8 @@ fun ProgressScreen(
     onExerciseClick: (ExerciseImprovement) -> Unit,
     onViewAllExercises: () -> Unit
 ) {
-    val summary by viewModel.summary.collectAsState()
-    val improvements by viewModel.exerciseImprovements.collectAsState()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
+    val improvements by viewModel.exerciseImprovements.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier

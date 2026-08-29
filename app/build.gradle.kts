@@ -27,6 +27,17 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        create("benchmark") {
+            initWith(getByName("release"))
+
+            isDebuggable = false
+            isProfileable = true
+
+            signingConfig = signingConfigs.getByName("debug")
+
+            matchingFallbacks += listOf("release")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -59,6 +70,7 @@ dependencies {
     // ViewModel + State for Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
 
     // Navigation for Compose (moving between screens)
     implementation("androidx.navigation:navigation-compose:2.9.1")

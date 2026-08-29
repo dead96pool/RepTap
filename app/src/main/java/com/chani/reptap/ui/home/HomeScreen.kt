@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
 
@@ -20,10 +21,10 @@ fun HomeScreen(
     onStartSession: (WorkoutDay) -> Unit,
     onViewDetails: (WorkoutDay) -> Unit
 ) {
-    val today by viewModel.todayWorkout.collectAsState()
-    val allDays by viewModel.allDays.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val exercises by viewModel.todayExercises.collectAsState()
+    val today by viewModel.todayWorkout.collectAsStateWithLifecycle()
+    val allDays by viewModel.allDays.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val exercises by viewModel.todayExercises.collectAsStateWithLifecycle()
 
     var showDayMenu by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
@@ -34,7 +35,7 @@ fun HomeScreen(
         } else {
             val day = today
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                val nextDate by viewModel.nextWorkoutDate.collectAsState()
+                val nextDate by viewModel.nextWorkoutDate.collectAsStateWithLifecycle()
                 if (day != null && !day.isRecovery && nextDate != null) {
                     Text(
                         text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
