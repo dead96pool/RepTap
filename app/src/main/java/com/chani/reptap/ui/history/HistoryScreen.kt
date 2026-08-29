@@ -19,36 +19,27 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
-    onBack: () -> Unit,
     onSessionClick: (SessionRecap) -> Unit
 ) {
     val sessions by viewModel.sessions.collectAsState()
     val dateFormat = remember { SimpleDateFormat("EEE, MMM d - h:mm a", Locale.getDefault()) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Timeline") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } }
-            )
+    if (sessions.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No completed workouts yet")
         }
-    ) { innerPadding ->
-        if (sessions.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Text("No completed workouts yet")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(sessions) { session ->
-                    TimelineCard(session, dateFormat, onClick = { onSessionClick(session) })
-                }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(sessions) { session ->
+                TimelineCard(session, dateFormat, onClick = { onSessionClick(session) })
             }
         }
     }
 }
+
 
 @Composable
 private fun TimelineCard(session: SessionRecap, dateFormat: SimpleDateFormat, onClick: () -> Unit) {

@@ -37,83 +37,76 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProgressScreen(
     viewModel: ProgressViewModel,
-    onBack: () -> Unit,
     onExerciseClick: (ExerciseImprovement) -> Unit,
     onViewAllExercises: () -> Unit
 ) {
     val summary by viewModel.summary.collectAsState()
     val improvements by viewModel.exerciseImprovements.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Progress") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } }
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                val scope = androidx.compose.runtime.rememberCoroutineScope()
-                Button(onClick = { scope.launch { viewModel.seedFakeDataForTesting() } }) {
-                    Text("Seed Fake Data (TEMP)")
-                }
+    ) {
+        item {
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            Button(onClick = { scope.launch { viewModel.seedFakeDataForTesting() } }) {
+                Text("Seed Fake Data (TEMP)")
             }
+        }
 
-            item {
-                summary?.let { s ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            ProgressStatRow("Total Sessions", "${s.totalSessions}")
-                            ProgressStatRow("Average Duration", "${s.averageDurationMillis / 60000} min")
-                            ProgressStatRow("Sessions per Week", "${(s.averageSessionsPerWeek * 10).roundToInt() / 10.0}")
-                        }
-                    }
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Exercise Trends",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    TextButton(onClick = onViewAllExercises) {
-                        Text("View All")
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-                    }
-                }
-            }
-            item {
+        item {
+            summary?.let { s ->
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        improvements.forEachIndexed { index, item ->
-                            ExerciseImprovementRow(item, onClick = { onExerciseClick(item) })
-                            if (index < improvements.size - 1) {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                            }
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ProgressStatRow("Total Sessions", "${s.totalSessions}")
+                        ProgressStatRow("Average Duration", "${s.averageDurationMillis / 60000} min")
+                        ProgressStatRow("Sessions per Week", "${(s.averageSessionsPerWeek * 10).roundToInt() / 10.0}")
+                    }
+                }
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Exercise Trends",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = onViewAllExercises) {
+                    Text("View All")
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                }
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                    improvements.forEachIndexed { index, item ->
+                        ExerciseImprovementRow(item, onClick = { onExerciseClick(item) })
+                        if (index < improvements.size - 1) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         }
-                        if (improvements.isEmpty()) {
-                            Text(
-                                "Log at least 6 sessions of an exercise to see trends",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
+                    }
+                    if (improvements.isEmpty()) {
+                        Text(
+                            "Log at least 6 sessions of an exercise to see trends",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun ProgressStatRow(label: String, value: String) {

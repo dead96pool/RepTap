@@ -1,6 +1,8 @@
 package com.chani.reptap
 
 import android.os.Bundle
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -38,6 +40,7 @@ import com.chani.reptap.ui.history.SessionDetailScreen
 import com.chani.reptap.ui.history.SessionDetailViewModel
 import com.chani.reptap.ui.progress.AllExercisesScreen
 import com.chani.reptap.ui.progress.AllExercisesViewModel
+import com.chani.reptap.ui.navigation.RepTapMainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,22 +77,75 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val navController = rememberNavController()
 
-                    NavHost(navController = navController, startDestination = "home") {
+                    NavHost(
+                        navController = navController,
+                        startDestination = "home",
+                        enterTransition = { EnterTransition.None },
+                        exitTransition = { ExitTransition.None },
+                        popEnterTransition = { EnterTransition.None },
+                        popExitTransition = { ExitTransition.None }
+                    ) {
                         composable("home") {
                             val homeViewModel: HomeViewModel = viewModel(
+                                key = "home",
                                 factory = viewModelFactory {
-                                    initializer { HomeViewModel(workoutRepository, cycleRepository) }
+                                    initializer {
+                                        HomeViewModel(
+                                            workoutRepository,
+                                            cycleRepository
+                                        )
+                                    }
                                 }
                             )
-                            LaunchedEffect(Unit) {
-                                homeViewModel.loadToday()
-                            }
-                            HomeScreen(
-                                viewModel = homeViewModel,
-                                onStartSession = { day -> navController.navigate("workout/${day.id}") },
-                                onViewDetails = { day -> navController.navigate("details/${day.id}/${day.name}") },
-                                onViewHistory = { navController.navigate("history") },
-                                onViewProgress = { navController.navigate("progress") }
+
+                            val progressViewModel: ProgressViewModel = viewModel(
+                                key = "progress",
+                                factory = viewModelFactory {
+                                    initializer {
+                                        ProgressViewModel(workoutRepository)
+                                    }
+                                }
+                            )
+
+                            val historyViewModel: HistoryViewModel = viewModel(
+                                key = "history",
+                                factory = viewModelFactory {
+                                    initializer {
+                                        HistoryViewModel(workoutRepository)
+                                    }
+                                }
+                            )
+
+                            RepTapMainScreen(
+                                homeViewModel = homeViewModel,
+                                progressViewModel = progressViewModel,
+                                historyViewModel = historyViewModel,
+
+                                onStartSession = { day ->
+                                    navController.navigate("workout/${day.id}")
+                                },
+
+                                onViewDetails = { day ->
+                                    navController.navigate(
+                                        "details/${day.id}/${day.name}"
+                                    )
+                                },
+
+                                onExerciseClick = { improvement ->
+                                    navController.navigate(
+                                        "exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}"
+                                    )
+                                },
+
+                                onViewAllExercises = {
+                                    navController.navigate("all_exercises")
+                                },
+
+                                onSessionClick = { session ->
+                                    navController.navigate(
+                                        "session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}/${session.totalSets}/${session.totalReps}"
+                                    )
+                                }
                             )
                         }
 
@@ -133,20 +189,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable("history") {
-                            val historyViewModel: HistoryViewModel = viewModel(
-                                factory = viewModelFactory {
-                                    initializer { HistoryViewModel(workoutRepository) }
-                                }
-                            )
-                            HistoryScreen(
-                                viewModel = historyViewModel,
-                                onBack = { navController.popBackStack() },
-                                onSessionClick = { session ->
-                                    navController.navigate("session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}/${session.totalSets}/${session.totalReps}")
-                                }
-                            )
-                        }
                         composable(
                             route = "session_detail/{sessionId}/{workoutDayId}/{dayName}/{startedAt}/{finishedAt}/{totalSets}/{totalReps}",
                             arguments = listOf(
@@ -190,22 +232,6 @@ class MainActivity : ComponentActivity() {
                                 currentSession = currentSession,
                                 viewModel = detailViewModel,
                                 onBack = { navController.popBackStack() }
-                            )
-                        }
-
-                        composable("progress") {
-                            val progressViewModel: ProgressViewModel = viewModel(
-                                factory = viewModelFactory {
-                                    initializer { ProgressViewModel(workoutRepository) }
-                                }
-                            )
-                            ProgressScreen(
-                                viewModel = progressViewModel,
-                                onBack = { navController.popBackStack() },
-                                onExerciseClick = { improvement ->
-                                    navController.navigate("exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}")
-                                },
-                                onViewAllExercises = { navController.navigate("all_exercises") }
                             )
                         }
 

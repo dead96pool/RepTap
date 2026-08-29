@@ -9,6 +9,7 @@ import com.chani.reptap.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
@@ -55,20 +56,23 @@ class HomeViewModel(
     fun loadToday() {
         viewModelScope.launch {
             _isLoading.value = true
+
             cycleRepository.refreshScheduleIfOverdue()
+
             val day = cycleRepository.getCurrentDay()
+
             _todayWorkout.value = day
             _nextWorkoutDate.value = cycleRepository.getScheduledDateForCurrentSlot()
-            if (day != null && !day.isRecovery) {
-                workoutRepository.getExercisesForDayWithNames(day.id).collect { list ->
-                    _todayExercises.value = list
-                    _isLoading.value = false
-                    return@collect
-                }
+
+            _todayExercises.value = if (day != null && !day.isRecovery) {
+                workoutRepository
+                    .getExercisesForDayWithNames(day.id)
+                    .first()
             } else {
-                _todayExercises.value = emptyList()
-                _isLoading.value = false
+                emptyList()
             }
+
+            _isLoading.value = false
         }
     }
 

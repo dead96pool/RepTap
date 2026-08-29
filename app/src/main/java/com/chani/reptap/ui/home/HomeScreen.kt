@@ -18,135 +18,108 @@ import com.chani.reptap.data.local.entity.WorkoutDay
 fun HomeScreen(
     viewModel: HomeViewModel,
     onStartSession: (WorkoutDay) -> Unit,
-    onViewDetails: (WorkoutDay) -> Unit,
-    onViewHistory: () -> Unit,
-    onViewProgress: () -> Unit
+    onViewDetails: (WorkoutDay) -> Unit
 ) {
     val today by viewModel.todayWorkout.collectAsState()
     val allDays by viewModel.allDays.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val exercises by viewModel.todayExercises.collectAsState()
 
-    var showTopMenu by remember { mutableStateOf(false) }
     var showDayMenu by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("RepTap") },
-                actions = {
-                    IconButton(onClick = { showTopMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                    }
-                    DropdownMenu(expanded = showTopMenu, onDismissRequest = { showTopMenu = false }) {
-                        DropdownMenuItem(text = { Text("History") }, onClick = {
-                            showTopMenu = false
-                            onViewHistory()
-                        })
-                        DropdownMenuItem(text = { Text("Progress") }, onClick = {
-                            showTopMenu = false
-                            onViewProgress()
-                        })
-                    }
-                },
-                modifier = Modifier.heightIn(max = 85.dp),
-            )
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                val day = today
-                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    val nextDate by viewModel.nextWorkoutDate.collectAsState()
-                    if (day != null && !day.isRecovery && nextDate != null) {
-                        Text(
-                            text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                        )
-                    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        } else {
+            val day = today
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                val nextDate by viewModel.nextWorkoutDate.collectAsState()
+                if (day != null && !day.isRecovery && nextDate != null) {
+                    Text(
+                        text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                    )
+                }
 
-                    Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Header row: day title + three-dot menu
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = day?.name ?: "No day selected",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Box {
-                                    IconButton(onClick = { showDayMenu = true }) {
-                                        Icon(Icons.Default.MoreVert, contentDescription = "Day options")
+                Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Header row: day title + three-dot menu
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = day?.name ?: "No day selected",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Box {
+                                IconButton(onClick = { showDayMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Day options")
+                                }
+                                DropdownMenu(expanded = showDayMenu, onDismissRequest = { showDayMenu = false }) {
+                                    DropdownMenuItem(text = { Text("Select training day") }, onClick = {
+                                        showDayMenu = false
+                                        showDayPicker = true
+                                    })
+                                }
+                            }
+                        }
+
+
+
+                        HorizontalDivider()
+
+                        // Exercise list body, fills remaining space
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            when {
+                                day == null -> {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("No workout data found")
                                     }
-                                    DropdownMenu(expanded = showDayMenu, onDismissRequest = { showDayMenu = false }) {
-                                        DropdownMenuItem(text = { Text("Select training day") }, onClick = {
-                                            showDayMenu = false
-                                            showDayPicker = true
-                                        })
+                                }
+                                day.isRecovery -> {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "Recovery day - No workouts today",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                else -> {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                        verticalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        exercises.forEach { ex ->
+                                            ExerciseRow(ex)
+                                        }
                                     }
                                 }
                             }
+                        }
 
-
-
+                        // Start Session button, part of the same card
+                        if (day != null && !day.isRecovery) {
                             HorizontalDivider()
-
-                            // Exercise list body, fills remaining space
-                            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                                when {
-                                    day == null -> {
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Text("No workout data found")
-                                        }
-                                    }
-                                    day.isRecovery -> {
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Text(
-                                                "Recovery day - No workouts today",
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        }
-                                    }
-                                    else -> {
-                                        Column(
-                                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                                            verticalArrangement = Arrangement.SpaceEvenly
-                                        ) {
-                                            exercises.forEach { ex ->
-                                                ExerciseRow(ex)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Start Session button, part of the same card
-                            if (day != null && !day.isRecovery) {
-                                HorizontalDivider()
-                                Button(
-                                    onClick = { onStartSession(day) },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                                        topStart = 0.dp,
-                                        topEnd = 0.dp,
-                                        bottomStart = 12.dp,
-                                        bottomEnd = 12.dp
-                                    ),
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues()
-                                ) {
-                                    Text("Start Session", fontSize = 16.sp)
-                                }
+                            Button(
+                                onClick = { onStartSession(day) },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 12.dp,
+                                    bottomEnd = 12.dp
+                                ),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues()
+                            ) {
+                                Text("Start Session", fontSize = 16.sp)
                             }
                         }
                     }
