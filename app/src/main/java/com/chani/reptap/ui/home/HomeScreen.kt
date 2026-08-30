@@ -18,8 +18,7 @@ import com.chani.reptap.data.local.entity.WorkoutDay
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onStartSession: (WorkoutDay) -> Unit,
-    onViewDetails: (WorkoutDay) -> Unit
+    onStartSession: (WorkoutDay) -> Unit
 ) {
     val today by viewModel.todayWorkout.collectAsStateWithLifecycle()
     val allDays by viewModel.allDays.collectAsStateWithLifecycle()
@@ -34,22 +33,38 @@ fun HomeScreen(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
             val day = today
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = 12.dp,
+                        top = 8.dp,
+                        end = 12.dp,
+                        bottom = 16.dp
+                    )
+            ) {
                 val nextDate by viewModel.nextWorkoutDate.collectAsStateWithLifecycle()
                 if (day != null && !day.isRecovery && nextDate != null) {
                     Text(
                         text = "Next workout: ${viewModel.formatNextWorkoutDate(nextDate!!)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
 
-                Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         // Header row: day title + three-dot menu
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 12.dp,
+                                    vertical = 8.dp
+                                ),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -77,7 +92,9 @@ fun HomeScreen(
                         HorizontalDivider()
 
                         // Exercise list body, fills remaining space
-                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             when {
                                 day == null -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -95,8 +112,13 @@ fun HomeScreen(
                                 }
                                 else -> {
                                     Column(
-                                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                                        verticalArrangement = Arrangement.SpaceEvenly
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = 12.dp,
+                                                vertical = 8.dp
+                                            ),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         exercises.forEach { ex ->
                                             ExerciseRow(ex)
@@ -155,7 +177,9 @@ fun HomeScreen(
 @Composable
 private fun ExerciseRow(ex: WorkoutExerciseWithName) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top
     ) {

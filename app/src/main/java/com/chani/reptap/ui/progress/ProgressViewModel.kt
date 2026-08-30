@@ -76,49 +76,6 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
         }
     }
 
-    fun seedFakeDataForTesting() {
-        viewModelScope.launch {
-            repository.seedFakeProgressData()
-
-            val (totalSessions, avgDuration, firstSessionDate) = coroutineScope {
-                val totalSessionsDeferred = async {
-                    repository.getTotalSessions()
-                }
-
-                val avgDurationDeferred = async {
-                    repository.getAverageDurationMillis() ?: 0L
-                }
-
-                val firstSessionDateDeferred = async {
-                    repository.getFirstSessionDate()
-                }
-
-                Triple(
-                    totalSessionsDeferred.await(),
-                    avgDurationDeferred.await(),
-                    firstSessionDateDeferred.await()
-                )
-            }
-
-            val avgSessionsPerWeek = calculateAverageSessionsPerWeek(
-                totalSessions,
-                firstSessionDate
-            )
-
-            _summary.value = ProgressSummary(
-                totalSessions = totalSessions,
-                averageDurationMillis = avgDuration,
-                averageSessionsPerWeek = avgSessionsPerWeek
-            )
-
-            val volumes = repository.getAllExerciseSessionVolumes()
-
-            _exerciseImprovements.value = withContext(Dispatchers.Default) {
-                calculateExerciseImprovements(volumes)
-            }
-        }
-    }
-
     private fun calculateAverageSessionsPerWeek(totalSessions: Int, firstSessionDate: Long?): Double {
         if (firstSessionDate == null || totalSessions == 0) return 0.0
         val daysSinceStart = daysSince(firstSessionDate)

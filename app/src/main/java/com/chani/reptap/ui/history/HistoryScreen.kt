@@ -31,7 +31,13 @@ fun HistoryScreen(
         }
     } else {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 12.dp,
+                top = 8.dp,
+                end = 12.dp,
+                bottom = 12.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(sessions) { session ->
@@ -43,18 +49,54 @@ fun HistoryScreen(
 
 
 @Composable
-private fun TimelineCard(session: SessionRecap, dateFormat: SimpleDateFormat, onClick: () -> Unit) {
-    val durationMin = TimeUnit.MILLISECONDS.toMinutes(session.finishedAt - session.startedAt)
+private fun TimelineCard(
+    session: SessionRecap,
+    dateFormat: SimpleDateFormat,
+    onClick: () -> Unit
+) {
+    val durationMin =
+        TimeUnit.MILLISECONDS.toMinutes(session.finishedAt - session.startedAt)
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(session.workoutDayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(dateFormat.format(Date(session.startedAt)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(8.dp))
-            Text("$durationMin min", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = 12.dp
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = session.workoutDayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = dateFormat.format(Date(session.startedAt)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Text(
+                text = "$durationMin min",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

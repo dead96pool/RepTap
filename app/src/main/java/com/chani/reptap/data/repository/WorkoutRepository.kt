@@ -2,7 +2,6 @@ package com.chani.reptap.data.repository
 
 import com.chani.reptap.data.local.db.AppDatabase
 import com.chani.reptap.data.local.entity.*
-import kotlinx.coroutines.flow.first
 
 
 class WorkoutRepository(private val db: AppDatabase) {
@@ -12,7 +11,6 @@ class WorkoutRepository(private val db: AppDatabase) {
     val workoutDays = db.workoutDayDao().getAll()
 
     val sessionHistory = db.sessionLogDao().getSessionSummaries()
-
     fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
 
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
@@ -45,7 +43,7 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     fun getSetDetailsForSession(sessionId: Long) = db.setLogDao().getSetDetailsForSession(sessionId)
 
-    suspend fun getSessionById(sessionId: Long) = db.sessionLogDao().getById(sessionId)
+    //suspend fun getSessionById(sessionId: Long) = db.sessionLogDao().getById(sessionId)
 
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
@@ -172,69 +170,6 @@ class WorkoutRepository(private val db: AppDatabase) {
         db.cycleStateDao().upsert(
             CycleState(id = 1, currentSlot = 1, scheduledEpochDay = java.time.LocalDate.now().toEpochDay())
         )
-    }
-
-    suspend fun seedFakeProgressData() {
-        val dayNames = listOf(
-            "Day 1 - Arms and Shoulders A",
-            "Day 2 - Legs, Chest, Back, Core",
-            "Day 4 - Arms and Shoulders B",
-            "Day 5 - Legs, Chest, Back, Core",
-            "Day 6 - Arm Thickness Specialization"
-        )
-        val days = dayNames.map { name ->
-            db.workoutDayDao().getAllOnce().first { it.name == name }
-        }
-
-        val now = System.currentTimeMillis()
-        val dayMillis = 24 * 60 * 60 * 1000L
-
-        // 3 full cycles, 7 days each, starting 21 days ago
-        var cursorDayOffset = 21L
-        val cycleOffsets = listOf(0L, 1L, 3L, 4L, 5L) // Day1, Day2, Day4, Day5, Day6 within a 7-day cycle
-
-        for (cycle in 0 until 3) {
-            for ((index, day) in days.withIndex()) {
-                val daysAgo = cursorDayOffset - (cycle * 7L) - cycleOffsets[index]
-                val startedAt = now - (daysAgo * dayMillis)
-                val finishedAt = startedAt + (55 * 60 * 1000L)
-
-                val sessionId = db.sessionLogDao().insert(
-                    SessionLog(
-                        workoutDayId = day.id,
-                        startedAt = startedAt,
-                        finishedAt = finishedAt,
-                        status = SessionStatus.COMPLETED
-                    )
-                )
-
-                val exercisesForDay = db.workoutExerciseDao().getForDay(day.id).first()
-                for (we in exercisesForDay) {
-                    // Rising weight each cycle to simulate improvement
-                    val baseWeight = 5f + cycle * 1.5f
-                    db.setLogDao().insert(
-                        SetLog(
-                            sessionLogId = sessionId,
-                            workoutExerciseId = we.id,
-                            setNumber = 1,
-                            repsCompleted = 15,
-                            weightKg = baseWeight,
-                            timestamp = startedAt
-                        )
-                    )
-                    db.setLogDao().insert(
-                        SetLog(
-                            sessionLogId = sessionId,
-                            workoutExerciseId = we.id,
-                            setNumber = 2,
-                            repsCompleted = 14,
-                            weightKg = baseWeight,
-                            timestamp = startedAt
-                        )
-                    )
-                }
-            }
-        }
     }
 
     suspend fun startSession(dayId: Long): Long {

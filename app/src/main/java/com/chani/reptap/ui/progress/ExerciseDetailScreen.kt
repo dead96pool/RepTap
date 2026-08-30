@@ -1,7 +1,6 @@
 package com.chani.reptap.ui.progress
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
@@ -28,8 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
 import com.chani.reptap.data.local.dao.ExerciseSetDetail
+import com.chani.reptap.ui.components.RepTapTopAppBar
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -102,9 +100,9 @@ fun ExerciseDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(exerciseName) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } }
+            RepTapTopAppBar(
+                title = exerciseName,
+                onBack = onBack
             )
         }
     ) { innerPadding ->
@@ -112,12 +110,22 @@ fun ExerciseDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(innerPadding)
-                .padding(16.dp)
+                .padding(
+                    start = 12.dp,
+                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    end = 12.dp,
+                    bottom = 12.dp
+                )
         ) {
             stats?.let { s ->
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 12.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         val avgReps = (s.averageReps * 10).roundToInt() / 10.0
                         DetailStatRow("Average Reps (per set)", "$avgReps")
                         DetailStatRow("Best Single Set", "${s.bestSingleSetReps} reps")
@@ -217,44 +225,18 @@ fun ExerciseDetailScreen(
                         "Weight Over Time",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
 
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(
-                                    onClick = { weightMonthIndex-- },
-                                    enabled = weightMonthIndex > 0,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                        contentDescription = "Previous month",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Text(
-                                    "${weightMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${weightMonth.year} · $weightSessionCount session${if (weightSessionCount == 1) "" else "s"}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(
-                                    onClick = { weightMonthIndex++ },
-                                    enabled = weightMonthIndex < sortedMonths.size - 1,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = "Next month",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
+                            MonthSelectorRow(
+                                label = "${weightMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${weightMonth.year} · $weightSessionCount session${if (weightSessionCount == 1) "" else "s"}",
+                                canGoPrevious = weightMonthIndex > 0,
+                                canGoNext = weightMonthIndex < sortedMonths.size - 1,
+                                onPrevious = { weightMonthIndex-- },
+                                onNext = { weightMonthIndex++ }
+                            )
                             MonthChart(
                                 month = weightMonth,
                                 points = weightPoints,
@@ -272,44 +254,18 @@ fun ExerciseDetailScreen(
                         "Reps Over Time",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
 
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(
-                                    onClick = { repsMonthIndex-- },
-                                    enabled = repsMonthIndex > 0,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                        contentDescription = "Previous month",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Text(
-                                    "${repsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${repsMonth.year} · $repsSessionCount session${if (repsSessionCount == 1) "" else "s"}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(
-                                    onClick = { repsMonthIndex++ },
-                                    enabled = repsMonthIndex < sortedMonths.size - 1,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = "Next month",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
+                            MonthSelectorRow(
+                                label = "${repsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${repsMonth.year} · $repsSessionCount session${if (repsSessionCount == 1) "" else "s"}",
+                                canGoPrevious = repsMonthIndex > 0,
+                                canGoNext = repsMonthIndex < sortedMonths.size - 1,
+                                onPrevious = { repsMonthIndex-- },
+                                onNext = { repsMonthIndex++ }
+                            )
                             MonthChart(
                                 month = repsMonth,
                                 points = repsPoints,
@@ -327,36 +283,18 @@ fun ExerciseDetailScreen(
                         "Volume Over Time",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
 
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(
-                                    onClick = { volumeMonthIndex-- },
-                                    enabled = volumeMonthIndex > 0,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
-                                }
-                                Text(
-                                    "${volumeMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${volumeMonth.year} · $volumeSessionCount session${if (volumeSessionCount == 1) "" else "s"}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(
-                                    onClick = { volumeMonthIndex++ },
-                                    enabled = volumeMonthIndex < sortedMonths.size - 1,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
-                                }
-                            }
+                            MonthSelectorRow(
+                                label = "${volumeMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${volumeMonth.year} · $volumeSessionCount session${if (volumeSessionCount == 1) "" else "s"}",
+                                canGoPrevious = volumeMonthIndex > 0,
+                                canGoNext = volumeMonthIndex < sortedMonths.size - 1,
+                                onPrevious = { volumeMonthIndex-- },
+                                onNext = { volumeMonthIndex++ }
+                            )
                             MonthChart(
                                 month = volumeMonth,
                                 points = volumePoints,
@@ -374,27 +312,17 @@ fun ExerciseDetailScreen(
                         "Best Single-Set Reps Over Time",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { bestRepsMonthIndex-- }, enabled = bestRepsMonthIndex > 0, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
-                                }
-                                Text(
-                                    "${bestRepsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${bestRepsMonth.year} (${bestRepsSessionCount} session${if (bestRepsSessionCount != 1) "s" else ""})",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(onClick = { bestRepsMonthIndex++ }, enabled = bestRepsMonthIndex < sortedMonths.size - 1, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
-                                }
-                            }
+                            MonthSelectorRow(
+                                label = "${bestRepsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${bestRepsMonth.year} · $bestRepsSessionCount session${if (bestRepsSessionCount == 1) "" else "s"}",
+                                canGoPrevious = bestRepsMonthIndex > 0,
+                                canGoNext = bestRepsMonthIndex < sortedMonths.size - 1,
+                                onPrevious = { bestRepsMonthIndex-- },
+                                onNext = { bestRepsMonthIndex++ }
+                            )
                             MonthChart(
                                 month = bestRepsMonth,
                                 points = bestRepsPoints,
@@ -412,27 +340,17 @@ fun ExerciseDetailScreen(
                         "Sets Per Session Over Time",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { setsMonthIndex-- }, enabled = setsMonthIndex > 0, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month", modifier = Modifier.size(20.dp))
-                                }
-                                Text(
-                                    "${setsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${setsMonth.year} (${setsSessionCount} session${if (setsSessionCount != 1) "s" else ""})",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(onClick = { setsMonthIndex++ }, enabled = setsMonthIndex < sortedMonths.size - 1, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month", modifier = Modifier.size(20.dp))
-                                }
-                            }
+                            MonthSelectorRow(
+                                label = "${setsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${setsMonth.year} · $setsSessionCount session${if (setsSessionCount == 1) "" else "s"}",
+                                canGoPrevious = setsMonthIndex > 0,
+                                canGoNext = setsMonthIndex < sortedMonths.size - 1,
+                                onPrevious = { setsMonthIndex-- },
+                                onNext = { setsMonthIndex++ }
+                            )
                             MonthChart(
                                 month = setsMonth,
                                 points = setsPoints,
@@ -455,6 +373,51 @@ fun ExerciseDetailScreen(
                     textAlign = TextAlign.Center
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MonthSelectorRow(
+    label: String,
+    canGoPrevious: Boolean,
+    canGoNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onPrevious,
+            enabled = canGoPrevious,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Previous month",
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        IconButton(
+            onClick = onNext,
+            enabled = canGoNext,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Next month",
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
@@ -651,32 +614,67 @@ private fun MonthChart(
 }
 
 @Composable
-private fun DetailStatRow(label: String, value: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+private fun DetailStatRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Composable
 private fun TrendStatRow(percentChange: Double?) {
-    Column {
-        Text("Recent Trend", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (percentChange == null) {
-            Text("-", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        } else {
-            val displayPercent = (percentChange * 10).roundToInt() / 10.0
-            val color = when {
-                displayPercent > 0.0 -> Color(0xFF2E7D32)
-                displayPercent < 0.0 -> Color(0xFFC62828)
-                else -> MaterialTheme.colorScheme.onSurface
-            }
-            Text(
-                "${if (displayPercent > 0) "+" else ""}$displayPercent%",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+    val displayText: String
+    val valueColor: Color
+
+    if (percentChange == null) {
+        displayText = "-"
+        valueColor = MaterialTheme.colorScheme.onSurface
+    } else {
+        val displayPercent =
+            (percentChange * 10).roundToInt() / 10.0
+
+        displayText =
+            "${if (displayPercent > 0) "+" else ""}$displayPercent%"
+
+        valueColor = when {
+            displayPercent > 0.0 -> Color(0xFF2E7D32)
+            displayPercent < 0.0 -> Color(0xFFC62828)
+            else -> MaterialTheme.colorScheme.onSurface
         }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Recent Trend",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Text(
+            text = displayText,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = valueColor
+        )
     }
 }

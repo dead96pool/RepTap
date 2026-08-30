@@ -31,7 +31,6 @@ fun RepTapMainScreen(
     progressViewModel: ProgressViewModel,
     historyViewModel: HistoryViewModel,
     onStartSession: (WorkoutDay) -> Unit,
-    onViewDetails: (WorkoutDay) -> Unit,
     onExerciseClick: (ExerciseImprovement) -> Unit,
     onViewAllExercises: () -> Unit,
     onSessionClick: (SessionRecap) -> Unit
@@ -73,15 +72,14 @@ fun RepTapMainScreen(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
             beyondViewportPageCount = 2
         ) { page ->
             when (page) {
                 TopLevelDestination.HOME.pageIndex -> {
                     HomeScreen(
                         viewModel = homeViewModel,
-                        onStartSession = onStartSession,
-                        onViewDetails = onViewDetails
+                        onStartSession = onStartSession
                     )
                 }
 

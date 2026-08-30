@@ -23,13 +23,8 @@ import androidx.navigation.navArgument
 import com.chani.reptap.data.local.db.AppDatabase
 import com.chani.reptap.data.repository.CycleRepository
 import com.chani.reptap.data.repository.WorkoutRepository
-import com.chani.reptap.ui.details.WorkoutDetailsScreen
-import com.chani.reptap.ui.details.WorkoutDetailsViewModel
-import com.chani.reptap.ui.history.HistoryScreen
 import com.chani.reptap.ui.history.HistoryViewModel
-import com.chani.reptap.ui.home.HomeScreen
 import com.chani.reptap.ui.home.HomeViewModel
-import com.chani.reptap.ui.progress.ProgressScreen
 import com.chani.reptap.ui.progress.ProgressViewModel
 import com.chani.reptap.ui.progress.ExerciseDetailScreen
 import com.chani.reptap.ui.progress.ExerciseDetailViewModel
@@ -125,12 +120,6 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("workout/${day.id}")
                                 },
 
-                                onViewDetails = { day ->
-                                    navController.navigate(
-                                        "details/${day.id}/${day.name}"
-                                    )
-                                },
-
                                 onExerciseClick = { improvement ->
                                     navController.navigate(
                                         "exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}"
@@ -146,28 +135,6 @@ class MainActivity : ComponentActivity() {
                                         "session_detail/${session.id}/${session.workoutDayId}/${session.workoutDayName}/${session.startedAt}/${session.finishedAt}/${session.totalSets}/${session.totalReps}"
                                     )
                                 }
-                            )
-                        }
-
-                        composable(
-                            route = "details/{dayId}/{dayName}",
-                            arguments = listOf(
-                                navArgument("dayId") { type = NavType.LongType },
-                                navArgument("dayName") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val dayId = backStackEntry.arguments?.getLong("dayId") ?: 0L
-                            val dayName = backStackEntry.arguments?.getString("dayName") ?: ""
-                            val detailsViewModel: WorkoutDetailsViewModel = viewModel(
-                                key = "details_$dayId",
-                                factory = viewModelFactory {
-                                    initializer { WorkoutDetailsViewModel(workoutRepository, dayId) }
-                                }
-                            )
-                            WorkoutDetailsScreen(
-                                dayName = dayName,
-                                viewModel = detailsViewModel,
-                                onBack = { navController.popBackStack() }
                             )
                         }
 

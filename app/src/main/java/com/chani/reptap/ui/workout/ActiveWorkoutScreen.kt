@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chani.reptap.ui.components.RepTapTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,10 +30,12 @@ fun ActiveWorkoutScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(state.currentExercise?.exerciseName ?: "Workout") },
+            RepTapTopAppBar(
+                title = state.currentExercise?.exerciseName ?: "Workout",
                 actions = {
-                    TextButton(onClick = { showQuitConfirm = true }) {
+                    TextButton(
+                        onClick = { showQuitConfirm = true }
+                    ) {
                         Text("Quit Session")
                     }
                 }
@@ -112,7 +115,7 @@ private fun RepTapArea(
     val canFinish = repsTapped >= repMin
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             "Set $setNumber of $totalSets",
             style = MaterialTheme.typography.titleMedium,
@@ -128,7 +131,10 @@ private fun RepTapArea(
         Spacer(Modifier.height(16.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 12.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(
@@ -177,7 +183,7 @@ private fun RepTapArea(
                 }
             }
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -188,7 +194,7 @@ private fun RestTimerArea(
     onSkipRest: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

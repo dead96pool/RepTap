@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
+import com.chani.reptap.ui.components.RepTapTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,11 +21,9 @@ fun WorkoutDetailsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(dayName) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
-                }
+            RepTapTopAppBar(
+                title = dayName,
+                onBack = onBack
             )
         }
     ) { innerPadding ->

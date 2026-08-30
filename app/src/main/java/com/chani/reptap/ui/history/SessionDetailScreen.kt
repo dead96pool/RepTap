@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chani.reptap.data.local.dao.SessionRecap
+import com.chani.reptap.ui.components.RepTapTopAppBar
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -29,14 +30,20 @@ fun SessionDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(dayName) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } }
+            RepTapTopAppBar(
+                title = dayName,
+                onBack = onBack
             )
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 12.dp,
+                top = innerPadding.calculateTopPadding() + 8.dp,
+                end = 12.dp,
+                bottom = 12.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
