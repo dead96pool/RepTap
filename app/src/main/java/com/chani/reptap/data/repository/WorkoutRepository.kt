@@ -6,16 +6,16 @@ import com.chani.reptap.data.local.entity.*
 
 class WorkoutRepository(private val db: AppDatabase) {
 
-    val muscleGroups = db.muscleGroupDao().getAll()
+    //val muscleGroups = db.muscleGroupDao().getAll()
     val exercises = db.exerciseDao().getAll()
     val workoutDays = db.workoutDayDao().getAll()
 
-    val sessionHistory = db.sessionLogDao().getSessionSummaries()
-    fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
+    //val sessionHistory = db.sessionLogDao().getSessionSummaries()
+    //fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
 
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
 
-    fun getMuscleProgress(startTime: Long, endTime: Long) = db.setLogDao().getMuscleProgress(startTime, endTime)
+    //fun getMuscleProgress(startTime: Long, endTime: Long) = db.setLogDao().getMuscleProgress(startTime, endTime)
 
     val completedSessionRecaps = db.sessionLogDao().getCompletedSessionRecaps()
 
@@ -31,7 +31,7 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun getFirstSessionDate() = db.sessionLogDao().getFirstSessionDate()
 
-    suspend fun getCompletedNonRecoverySessionsCount() = db.sessionLogDao().getCompletedNonRecoverySessionsCount()
+    //suspend fun getCompletedNonRecoverySessionsCount() = db.sessionLogDao().getCompletedNonRecoverySessionsCount()
 
     suspend fun getAllExerciseSessionVolumes() = db.setLogDao().getAllExerciseSessionVolumes()
 
