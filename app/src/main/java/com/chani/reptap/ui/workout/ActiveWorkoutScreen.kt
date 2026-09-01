@@ -14,6 +14,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.ui.components.RepTapTopAppBar
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import com.chani.reptap.ui.theme.TextPrimary
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,31 +67,54 @@ fun ActiveWorkoutScreen(
                 state.phase == SetPhase.COUNTING_REPS -> {
                     val currentExercise = state.currentExercise
 
-                    if (currentExercise?.trackingType == ExerciseTrackingType.TIME) {
+                    if (
+                        currentExercise?.trackingType ==
+                        ExerciseTrackingType.TIME
+                    ) {
                         TimedSetArea(
                             setNumber = state.currentSetNumber,
                             totalSets = currentExercise.targetSets,
                             secondsElapsed = state.timedSecondsElapsed,
-                            targetMinSec = currentExercise.targetDurationMinSec ?: 0,
-                            targetMaxSec = currentExercise.targetDurationMaxSec ?: 0,
+                            targetMinSec =
+                                currentExercise.targetDurationMinSec ?: 0,
+                            targetMaxSec =
+                                currentExercise.targetDurationMaxSec ?: 0,
                             isPerSide = currentExercise.isPerSide,
+                            hasStarted = state.hasTimedSetStarted,
                             isRunning = state.isTimedSetRunning,
-                            onStart = { viewModel.startTimedSet() },
-                            onPause = { viewModel.pauseTimedSet() },
-                            onFinishSet = { viewModel.finishSet() }
+                            onStart = {
+                                viewModel.startTimedSet()
+                            },
+                            onPause = {
+                                viewModel.pauseTimedSet()
+                            },
+                            onFinishSet = {
+                                viewModel.finishSet()
+                            }
                         )
                     } else {
                         RepTapArea(
-                            exerciseName = currentExercise?.exerciseName ?: "",
+                            exerciseName =
+                                currentExercise?.exerciseName ?: "",
                             setNumber = state.currentSetNumber,
-                            totalSets = currentExercise?.targetSets ?: 1,
+                            totalSets =
+                                currentExercise?.targetSets ?: 1,
                             repsTapped = state.repsTapped,
-                            repMin = currentExercise?.repRangeMin ?: 0,
-                            repMax = currentExercise?.repRangeMax ?: 0,
-                            isPerSide = currentExercise?.isPerSide ?: false,
-                            onTap = { viewModel.tapRep() },
-                            onUndo = { viewModel.undoTap() },
-                            onFinishSet = { viewModel.finishSet() }
+                            repMin =
+                                currentExercise?.repRangeMin ?: 0,
+                            repMax =
+                                currentExercise?.repRangeMax ?: 0,
+                            isPerSide =
+                                currentExercise?.isPerSide ?: false,
+                            onTap = {
+                                viewModel.tapRep()
+                            },
+                            onUndo = {
+                                viewModel.undoTap()
+                            },
+                            onFinishSet = {
+                                viewModel.finishSet()
+                            }
                         )
                     }
                 }
@@ -213,29 +244,90 @@ private fun TimedSetArea(
     targetMinSec: Int,
     targetMaxSec: Int,
     isPerSide: Boolean,
+    hasStarted: Boolean,
     isRunning: Boolean,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onFinishSet: () -> Unit
 ) {
-    val canFinish = secondsElapsed >= targetMinSec
+    val canFinish =
+        secondsElapsed >= targetMinSec
 
-    val minutes = secondsElapsed / 60
-    val seconds = secondsElapsed % 60
+    val isPaused =
+        hasStarted && !isRunning
+
+    val minutes =
+        secondsElapsed / 60
+
+    val seconds =
+        secondsElapsed % 60
 
     val formattedTime =
-        "%02d:%02d".format(minutes, seconds)
+        "%02d:%02d".format(
+            minutes,
+            seconds
+        )
+
+    /*
+     * Final approved pause treatment.
+     */
+    val timerBlur by animateDpAsState(
+        targetValue =
+            if (isPaused) {
+                1.9.dp
+            } else {
+                0.dp
+            },
+        animationSpec =
+            tween(durationMillis = 180),
+        label = "TimerBlur"
+    )
+
+    val timerAlpha by animateFloatAsState(
+        targetValue =
+            if (isPaused) {
+                0.68f
+            } else {
+                1f
+            },
+        animationSpec =
+            tween(durationMillis = 180),
+        label = "TimerAlpha"
+    )
+
+    val pausedLabelAlpha by animateFloatAsState(
+        targetValue =
+            if (isPaused) {
+                1f
+            } else {
+                0f
+            },
+        animationSpec =
+            tween(durationMillis = 160),
+        label = "PausedLabelAlpha"
+    )
+
+    val pausedLabelColor =
+        if (isSystemInDarkTheme()) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            TextPrimary
+        }
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        Spacer(Modifier.height(8.dp))
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
 
         Text(
             text = "Set $setNumber of $totalSets",
-            style = MaterialTheme.typography.titleMedium,
+            style =
+                MaterialTheme.typography.titleMedium,
             modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign =
+                androidx.compose.ui.text.style.TextAlign.Center
         )
 
         Text(
@@ -243,7 +335,9 @@ private fun TimedSetArea(
                 append("Target: ")
 
                 if (targetMaxSec > 0) {
-                    append("$targetMinSec-$targetMaxSec sec")
+                    append(
+                        "$targetMinSec-$targetMaxSec sec"
+                    )
                 } else {
                     append("$targetMinSec sec")
                 }
@@ -252,12 +346,16 @@ private fun TimedSetArea(
                     append(" each side")
                 }
             },
-            style = MaterialTheme.typography.bodyMedium,
+            style =
+                MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign =
+                androidx.compose.ui.text.style.TextAlign.Center
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
 
         Card(
             modifier = Modifier
@@ -272,14 +370,66 @@ private fun TimedSetArea(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                        .background(
+                            MaterialTheme
+                                .colorScheme
+                                .primaryContainer
+                        ),
+                    contentAlignment =
+                        Alignment.Center
                 ) {
-                    Text(
-                        text = formattedTime,
-                        fontSize = 72.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+                        /*
+                         * This space always remains present so
+                         * the counter does not move when PAUSED
+                         * appears or disappears.
+                         */
+                        Box(
+                            modifier =
+                                Modifier.height(32.dp),
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+                            Text(
+                                text = "PAUSED",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .labelLarge
+                                        .copy(
+                                            fontSize = 14.sp,
+                                            fontWeight =
+                                                FontWeight.Bold,
+                                            letterSpacing = 7.sp
+                                        ),
+                                color = pausedLabelColor,
+                                modifier =
+                                    Modifier.alpha(
+                                        pausedLabelAlpha
+                                    )
+                            )
+                        }
+
+                        /*
+                         * Paused timer:
+                         *
+                         * 1.9dp subtle edge blur
+                         * 68% opacity
+                         *
+                         * No card/background colour changes.
+                         */
+                        Text(
+                            text = formattedTime,
+                            fontSize = 72.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .blur(timerBlur)
+                                .alpha(timerAlpha)
+                        )
+                    }
                 }
 
                 HorizontalDivider()
@@ -300,24 +450,32 @@ private fun TimedSetArea(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                            topStart = 0.dp,
-                            topEnd = 0.dp,
-                            bottomStart = 12.dp,
-                            bottomEnd = 0.dp
-                        ),
-                        contentPadding = PaddingValues(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor =
-                                MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        shape =
+                            androidx.compose.foundation.shape
+                                .RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 12.dp,
+                                    bottomEnd = 0.dp
+                                ),
+                        contentPadding =
+                            PaddingValues(),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .surfaceVariant,
+                                contentColor =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .onSurfaceVariant
+                            )
                     ) {
                         Text(
                             text = when {
                                 isRunning -> "Pause"
-                                secondsElapsed > 0 -> "Resume"
+                                hasStarted -> "Resume"
                                 else -> "Start"
                             }
                         )
@@ -329,13 +487,16 @@ private fun TimedSetArea(
                         modifier = Modifier
                             .weight(2f)
                             .fillMaxHeight(),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                            topStart = 0.dp,
-                            topEnd = 0.dp,
-                            bottomStart = 0.dp,
-                            bottomEnd = 12.dp
-                        ),
-                        contentPadding = PaddingValues()
+                        shape =
+                            androidx.compose.foundation.shape
+                                .RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 0.dp,
+                                    bottomEnd = 12.dp
+                                ),
+                        contentPadding =
+                            PaddingValues()
                     ) {
                         Text("Finish Set")
                     }
@@ -343,7 +504,9 @@ private fun TimedSetArea(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
     }
 }
 

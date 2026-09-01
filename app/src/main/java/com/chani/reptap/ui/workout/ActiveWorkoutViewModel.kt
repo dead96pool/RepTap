@@ -23,6 +23,7 @@ data class ActiveWorkoutUiState(
     val currentSetNumber: Int = 1,
     val repsTapped: Int = 0,
     val timedSecondsElapsed: Int = 0,
+    val hasTimedSetStarted: Boolean = false,
     val isTimedSetRunning: Boolean = false,
     val phase: SetPhase = SetPhase.COUNTING_REPS,
     val secondsRemaining: Int = 0,
@@ -92,6 +93,7 @@ class ActiveWorkoutViewModel(
         if (state.isTimedSetRunning) return
 
         _uiState.value = state.copy(
+            hasTimedSetStarted = true,
             isTimedSetRunning = true
         )
 
@@ -157,6 +159,7 @@ class ActiveWorkoutViewModel(
         timedSetTimerJob = null
 
         _uiState.value = state.copy(
+            hasTimedSetStarted = false,
             isTimedSetRunning = false
         )
 
@@ -235,6 +238,7 @@ class ActiveWorkoutViewModel(
                     currentSetNumber = 1,
                     repsTapped = 0,
                     timedSecondsElapsed = 0,
+                    hasTimedSetStarted = false,
                     isTimedSetRunning = false,
                     phase = SetPhase.COUNTING_REPS,
                     weightKg = state.exercises[nextIndex].defaultWeightKg
@@ -245,6 +249,7 @@ class ActiveWorkoutViewModel(
                 currentSetNumber = state.currentSetNumber + 1,
                 repsTapped = 0,
                 timedSecondsElapsed = 0,
+                hasTimedSetStarted = false,
                 isTimedSetRunning = false,
                 phase = SetPhase.COUNTING_REPS
             )

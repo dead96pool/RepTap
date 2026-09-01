@@ -2,7 +2,6 @@
 
 - replace the range of time/reps to fixed minimum and remove maximum
 - exercise trends order option (trends, name etc)
-- stopwatch visual indication to show it is paused or counting
 - better home screen display with new "bodyweight" info
 - importing workouts into the workout builder
 
