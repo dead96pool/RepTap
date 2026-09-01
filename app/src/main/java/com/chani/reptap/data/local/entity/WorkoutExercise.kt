@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(
     tableName = "workout_exercises",
@@ -34,5 +35,7 @@ data class WorkoutExercise(
     val targetDurationSec: Int? = null,
     val restBetweenSetsSec: Int,
     val restBeforeNextSec: Int,
-    val defaultWeightKg: Float? = 5.0f
+    val defaultWeightKg: Float? = 5.0f,
+    @ColumnInfo(defaultValue = "1")
+    val isActive: Boolean = true
 )

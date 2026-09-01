@@ -19,7 +19,8 @@ import com.chani.reptap.data.local.entity.ExerciseTrackingType
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onStartSession: (WorkoutDay) -> Unit
+    onStartSession: (WorkoutDay) -> Unit,
+    onEditWorkout: (WorkoutDay) -> Unit
 ) {
     val today by viewModel.todayWorkout.collectAsStateWithLifecycle()
     val allDays by viewModel.allDays.collectAsStateWithLifecycle()
@@ -79,11 +80,36 @@ fun HomeScreen(
                                 IconButton(onClick = { showDayMenu = true }) {
                                     Icon(Icons.Default.MoreVert, contentDescription = "Day options")
                                 }
-                                DropdownMenu(expanded = showDayMenu, onDismissRequest = { showDayMenu = false }) {
-                                    DropdownMenuItem(text = { Text("Select training day") }, onClick = {
+                                DropdownMenu(
+                                    expanded = showDayMenu,
+                                    onDismissRequest = {
                                         showDayMenu = false
-                                        showDayPicker = true
-                                    })
+                                    }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text("Select training day")
+                                        },
+                                        onClick = {
+                                            showDayMenu = false
+                                            showDayPicker = true
+                                        }
+                                    )
+
+                                    if (
+                                        day != null &&
+                                        !day.isRecovery
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text("Edit workout")
+                                            },
+                                            onClick = {
+                                                showDayMenu = false
+                                                onEditWorkout(day)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }

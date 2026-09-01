@@ -11,16 +11,44 @@ import java.time.ZoneId
 
 class WorkoutRepository(private val db: AppDatabase) {
 
-    //val muscleGroups = db.muscleGroupDao().getAll()
     val exercises = db.exerciseDao().getAll()
     val workoutDays = db.workoutDayDao().getAll()
 
-    //val sessionHistory = db.sessionLogDao().getSessionSummaries()
-    //fun getExercisesForDay(dayId: Long) = db.workoutExerciseDao().getForDay(dayId)
-
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
 
-    //fun getMuscleProgress(startTime: Long, endTime: Long) = db.setLogDao().getMuscleProgress(startTime, endTime)
+    fun getWorkoutExerciseWithName(
+        workoutExerciseId: Long
+    ) =
+        db.workoutExerciseDao()
+            .getByIdWithName(workoutExerciseId)
+
+    suspend fun updateWorkoutExerciseConfiguration(
+        workoutExerciseId: Long,
+        targetSets: Int,
+        targetReps: Int,
+        targetDurationSec: Int?,
+        defaultWeightKg: Float?,
+        restBetweenSetsSec: Int,
+        restBeforeNextSec: Int
+    ): Boolean {
+        val current =
+            db.workoutExerciseDao()
+                .getById(workoutExerciseId)
+                ?: return false
+
+        db.workoutExerciseDao().update(
+            current.copy(
+                targetSets = targetSets,
+                targetReps = targetReps,
+                targetDurationSec = targetDurationSec,
+                defaultWeightKg = defaultWeightKg,
+                restBetweenSetsSec = restBetweenSetsSec,
+                restBeforeNextSec = restBeforeNextSec
+            )
+        )
+
+        return true
+    }
 
     val completedSessionRecaps = db.sessionLogDao().getCompletedSessionRecaps()
 
@@ -36,8 +64,6 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun getFirstSessionDate() = db.sessionLogDao().getFirstSessionDate()
 
-    //suspend fun getCompletedNonRecoverySessionsCount() = db.sessionLogDao().getCompletedNonRecoverySessionsCount()
-
     suspend fun getAllExerciseSessionVolumes() = db.setLogDao().getAllExerciseSessionVolumes()
 
     suspend fun getExerciseSessionDataPoints(exerciseId: Long) = db.setLogDao().getExerciseSessionDataPoints(exerciseId)
@@ -48,10 +74,82 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     fun getSetDetailsForSession(sessionId: Long) = db.setLogDao().getSetDetailsForSession(sessionId)
 
-    //suspend fun getSessionById(sessionId: Long) = db.sessionLogDao().getById(sessionId)
 
     suspend fun getAllExerciseTrendSessions() =
         db.setLogDao().getAllExerciseTrendSessions()
+
+    suspend fun removeWorkoutExercise(
+        workoutExerciseId: Long
+    ): Boolean {
+        return db.withTransaction {
+            val dao =
+                db.workoutExerciseDao()
+
+            val current =
+                dao.getById(
+                    workoutExerciseId
+                )
+                    ?: return@withTransaction false
+
+            if (!current.isActive) {
+                return@withTransaction true
+            }
+
+            /*
+             * For now a workout must retain at least one
+             * active exercise.
+             */
+            val activeCount =
+                dao.getActiveCountForDay(
+                    current.workoutDayId
+                )
+
+            if (activeCount <= 1) {
+                return@withTransaction false
+            }
+
+            /*
+             * Archive instead of physically deleting.
+             *
+             * Historical SetLogs can therefore continue
+             * referencing this WorkoutExercise row.
+             */
+            dao.update(
+                current.copy(
+                    isActive = false
+                )
+            )
+
+            /*
+             * Close any orderIndex gaps created by removal.
+             */
+            val remaining =
+                dao.getForDayOnce(
+                    current.workoutDayId
+                )
+
+            remaining.forEachIndexed {
+                    index,
+                    workoutExercise ->
+
+                val newOrder =
+                    index + 1
+
+                if (
+                    workoutExercise.orderIndex !=
+                    newOrder
+                ) {
+                    dao.update(
+                        workoutExercise.copy(
+                            orderIndex = newOrder
+                        )
+                    )
+                }
+            }
+
+            true
+        }
+    }
 
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
@@ -203,7 +301,7 @@ class WorkoutRepository(private val db: AppDatabase) {
 
         weDao.insertAll(plan)
         db.cycleStateDao().upsert(
-            CycleState(id = 1, currentSlot = 1, scheduledEpochDay = java.time.LocalDate.now().toEpochDay())
+            CycleState(id = 1, currentSlot = 1, scheduledEpochDay = LocalDate.now().toEpochDay())
         )
     }
 
@@ -518,7 +616,7 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun markSessionQuit(sessionId: Long) {
         val session = db.sessionLogDao().getById(sessionId) ?: return
-        db.sessionLogDao().update(session.copy(status = com.chani.reptap.data.local.entity.SessionStatus.QUIT, finishedAt = System.currentTimeMillis()))
+        db.sessionLogDao().update(session.copy(status = SessionStatus.QUIT, finishedAt = System.currentTimeMillis()))
     }
 
 

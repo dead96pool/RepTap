@@ -7,6 +7,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.chani.reptap.data.local.dao.*
 import com.chani.reptap.data.local.entity.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -18,7 +20,7 @@ import com.chani.reptap.data.local.entity.*
         SetLog::class,
         CycleState::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 
@@ -37,6 +39,20 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        private val MIGRATION_8_9 =
+            object : Migration(8, 9) {
+                override fun migrate(
+                    database: SupportSQLiteDatabase
+                ) {
+                    database.execSQL(
+                        """
+                ALTER TABLE workout_exercises
+                ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1
+                """.trimIndent()
+                    )
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -44,6 +60,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "reptap_database"
                 )
+                    .addMigrations(
+                        MIGRATION_8_9
+                    )
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

@@ -31,6 +31,7 @@ fun RepTapMainScreen(
     progressViewModel: ProgressViewModel,
     historyViewModel: HistoryViewModel,
     onStartSession: (WorkoutDay) -> Unit,
+    onEditWorkout: (WorkoutDay) -> Unit,
     onExerciseClick: (ExerciseImprovement) -> Unit,
     onViewAllExercises: () -> Unit,
     onSessionClick: (SessionRecap) -> Unit
@@ -79,7 +80,8 @@ fun RepTapMainScreen(
                 TopLevelDestination.HOME.pageIndex -> {
                     HomeScreen(
                         viewModel = homeViewModel,
-                        onStartSession = onStartSession
+                        onStartSession = onStartSession,
+                        onEditWorkout = onEditWorkout
                     )
                 }
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 class HomeViewModel(
     private val workoutRepository: WorkoutRepository,
@@ -31,6 +32,9 @@ class HomeViewModel(
 
     private val _nextWorkoutDate = MutableStateFlow<java.time.LocalDate?>(null)
     val nextWorkoutDate: StateFlow<java.time.LocalDate?> = _nextWorkoutDate.asStateFlow()
+
+    private var todayExercisesJob:
+            Job? = null
 
     init {
         viewModelScope.launch {
@@ -62,19 +66,49 @@ class HomeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
 
-            cycleRepository.refreshScheduleIfOverdue()
+            cycleRepository
+                .refreshScheduleIfOverdue()
 
-            val day = cycleRepository.getCurrentDay()
+            val day =
+                cycleRepository
+                    .getCurrentDay()
 
-            _todayWorkout.value = day
-            _nextWorkoutDate.value = cycleRepository.getScheduledDateForCurrentSlot()
+            _todayWorkout.value =
+                day
 
-            _todayExercises.value = if (day != null && !day.isRecovery) {
-                workoutRepository
-                    .getExercisesForDayWithNames(day.id)
-                    .first()
-            } else {
+            _nextWorkoutDate.value =
+                cycleRepository
+                    .getScheduledDateForCurrentSlot()
+
+            /*
+             * Stop observing the previously selected day
+             * before switching to the new one.
+             */
+            todayExercisesJob?.cancel()
+
+            _todayExercises.value =
                 emptyList()
+
+            if (
+                day != null &&
+                !day.isRecovery
+            ) {
+                /*
+                 * Keep observing Room rather than taking only
+                 * the first value. Workout Builder edits now
+                 * update Home automatically.
+                 */
+                todayExercisesJob =
+                    viewModelScope.launch {
+                        workoutRepository
+                            .getExercisesForDayWithNames(
+                                day.id
+                            )
+                            .collect { exercises ->
+                                _todayExercises.value =
+                                    exercises
+                            }
+                    }
             }
 
             _isLoading.value = false
