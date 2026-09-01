@@ -1,0 +1,77 @@
+
+===== Day 1 — Arms + shoulders A =====
+| Order | Exercise                                     		| Volume 			| Emphasis                       | Rest      |
+| ----- | -------------------------------------------------	| -----------------	| ------------------------------ | --------- |
+| 1     | Dumbbell curl          					   		| 3 x 12–20/arm  	| Biceps, elbow-flexion strength | 75 sec    |
+| 2     | Cross-body hammer curl                       		| 3 x 12–20/arm  	| Brachialis, brachioradialis    | 75 sec    |
+| 3     | Overhead dumbbell triceps extension (Two-hand) 	| 3 x 12–20      	| Triceps long head              | 75–90 sec |
+| 4     | Dumbbell skullcrusher on floor               		| 3 x 12–20      	| Triceps overall                | 75–90 sec |
+| 5     | Standing dumbbell shoulder press             		| 2 x 10–18      	| Front/side delts, triceps      | 90 sec    |
+| 6     | Dumbbell lateral raise                       		| 2 x 15–25      	| Side delts, shoulder width     | 60–75 sec |
+| 7     | Wrist curl                                   		| 2 x 15–30      	| Forearm flexors                | 45–60 sec |
+| 8     | Reverse wrist curl                           		| 2 x 15–30      	| Forearm extensors              | 45–60 sec |
+
+
+===== Day 2 — Legs + chest + back + core =====
+| Order | Exercise                             	| Volume     			| Emphasis                         | Rest       |
+| ----- | -------------------------------------	| --------------------- | -------------------------------- | ---------- |
+| 1     | Incline push-up						| 2 x 6–12           	| Chest, front delts, triceps      | 90 sec     |
+| 2     | One-arm dumbbell row                 	| 2 x 12–25/arm      	| Lats, upper back, biceps         | 75–90 sec  |
+| 3     | Goblet squat                         	| 2 x 15–25          	| Quads, glutes, core              | 90–120 sec |
+| 4     | Dumbbell Romanian deadlift           	| 2 x 15–25          	| Hamstrings, glutes, back posture | 90–120 sec |
+| 5     | Dumbbell floor press                 	| 2 x 12–20          	| Chest, triceps                   | 75–90 sec  |
+| 6     | Reverse fly                          	| 2 x 15–25         	| Rear delts, upper-back posture   | 60–75 sec  |
+| 7     | Glute bridge                         	| 2 x 15–30          	| Glutes                           | 60–75 sec  |
+| 8     | Side plank                           	| 2 x 20–45 secs/side 	| Obliques, trunk stability        | 45 sec     |
+| 9     | Russian twist			            	| 2 x 10–15/side     	| Obliques, rotational control     | 45–60 sec  |
+
+
+===== Day 3 — Complete rest =====
+| Order | Exercise      | Volume         			| Emphasis | Rest |
+| ----- | ------------- | ------------------------- | -------- | ---- |
+| —     | Complete rest | No programmed exercise 	| Recovery | —    |
+
+
+===== Day 4 — Arms + shoulders B =====
+| Order | Exercise                                       	| Volume 			| Emphasis                           | Rest      |
+| ----- | -------------------------------------------------	| ----------------- | ---------------------------------- | --------- |
+| 1     | Seated preacher-style supinated curl           	| 3 x 12–20/arm  	| Biceps with strict form            | 75 sec    |
+| 2     | Cross-body hammer curl                         	| 3 x 12–20/arm  	| Brachialis, brachioradialis        | 75 sec    |
+| 3     | Overhead dumbbell triceps extension				| 3 x 12–20/arm  	| Triceps long head                  | 75–90 sec |
+| 4     | Bent-over triceps kickback                     	| 3 x 15–25/arm  	| Triceps lockout                    | 60–75 sec |
+| 5     | Dumbbell lateral raise                         	| 2 x 15–25       	| Side delts                         | 60–75 sec |
+| 6     | Reverse fly                          				| 2 x 15–25      	| Rear delts, posture                | 60–75 sec |
+| 7     | Dumbbell shrug                                 	| 2 x 15–25      	| Upper traps                        | 60–75 sec |
+| 8     | Dumbbell reverse curl                          	| 2 x 12–20      	| Brachioradialis, forearm extensors | 60–75 sec |
+
+
+===== Day 5 — Legs + chest + back + core =====
+| Order | Exercise                             	| Volume 			| Emphasis                               | Rest       |
+| ----- | ------------------------------------- | ----------------- | -------------------------------------- | ---------- |
+| 1     | Split squat                          	| 2 x 10–18/leg  	| Quads, glutes, unilateral leg strength | 90 sec     |
+| 2     | Dumbbell Romanian deadlift 			| 2 x 15–25       	| Hamstrings, glutes                     | 90–120 sec |
+| 3     | Slow-tempo sumo squat                	| 2 x 15–25       	| Quads, glutes, adductors               | 90 sec     |
+| 4     | Incline close-grip push-up           	| 2 x 6–12        	| Chest, triceps                         | 90–120 sec |
+| 5     | One-arm dumbbell row                 	| 2 x 12–25/arm  	| Lats, upper back, biceps               | 75–90 sec  |
+| 6     | Dumbbell squeeze floor press         	| 2 x 12–25        	| Chest, triceps                         | 75–90 sec  |
+| 7     | Calf raise                           	| 2 x 15–30       	| Calves                                 | 45–60 sec  |
+| 8     | Bent-knee leg raise                  	| 2 x 10–15      	| Abs, pelvic control                    | 45–60 sec  |
+
+
+===== Day 6 — Arm thickness specialization =====
+| Order | Exercise                                       	| Volume   			| Emphasis                           | Rest      |
+| ----- | ------------------------------------------------- | ----------------- | ---------------------------------- | --------- |
+| 1     | Cross-body hammer curl                         	| 2 x 12–20/arm   	| Brachialis, brachioradialis        | 75 sec    |
+| 2     | Dumbbell reverse curl                          	| 2 x 12–20       	| Brachioradialis, forearm extensors | 60–75 sec |
+| 3     | Seated preacher-style supinated curl           	| 2 x 12–20/arm  	| Biceps                             | 75 sec    |
+| 4     | Overhead dumbbell triceps extension 				| 2 x 12–20/arm   	| Triceps long head                  | 75–90 sec |
+| 5     | Dumbbell skullcrusher on floor                 	| 2 x 12–20         | Triceps overall                    | 75–90 sec |
+| 6     | Bent-over triceps kickback                     	| 2 x 15–25/arm  	| Triceps lockout                    | 60–75 sec |
+| 7     | Wrist curl                                     	| 2 x 15–30         | Forearm flexors                    | 45–60 sec |
+| 8     | Reverse wrist curl                             	| 2 x 15–30         | Forearm extensors                  | 45–60 sec |
+
+
+===== Day 7 — Complete rest =====
+| Order | Exercise      | Volume         		  | Emphasis              | Rest |
+| ----- | ------------- | ----------------------- | --------------------- | ---- |
+| —     | Complete rest | No programmed exercise  | Recovery before Day 1 | —    |

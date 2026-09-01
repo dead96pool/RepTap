@@ -1,0 +1,60 @@
+========== IDEAS ============
+
+- replace the range of time/reps to fixed minimum and remove maximum
+- exercise trends order option (trends, name etc)
+- stopwatch visual indication to show it is paused or counting
+- better home screen display with new "bodyweight" info
+- importing workouts into the workout builder
+
+
+| Priority | Feature                                        | Why                                                                                    |
+| -------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **0**    | **Data safety / proper Room migrations**       | Foundation before we change the database                                               |
+| **2**    | **Workout editor / workout builder**           | Biggest improvement to making RepTap a genuine reusable training app                   |
+| **3**    | **History multi-select + Select All + Delete** | Gives you control over your accumulated data                                           |
+| **4**    | **History export**                             | Protects your data and makes RepTap less of a closed database                          |
+| **5**    | **History calendar view**                      | Major usability improvement once history management is solid                           |
+| **6**    | **Better history statistics**                  | Builds naturally on the history/calendar work                                          |
+| **7**    | **Search/filter All Exercises**                | Very useful and relatively easy, but not structurally important yet                    |
+| **8**    | **Muscle-group progress**                      | Valuable progress feature, but I'd build it after the underlying workout/data features |
+
+
+
+
+
+Milestone 1 — Protect and improve the workout engine
+
+Proper Room migrations
+Rep vs timed exercise tracking
+Adjustable weight during workouts
+Previous-session/set reference
+
+Milestone 2 — Make workouts configurable
+
+Edit existing workout
+Add/remove/reorder exercises
+Edit sets/reps/time/weight/rest
+Create/duplicate/rename workouts
+Custom exercises
+
+Milestone 3 — Own your history
+
+Multi-select / Select All / Delete
+CSV export
+Full backup/restore
+History calendar
+
+Milestone 4 — Turn the data into insight
+
+Better history statistics
+Muscle-group/training-distribution view
+PR detection
+Training streaks
+Date-range filtering
+
+Milestone 5 — Convenience polish
+
+All Exercises search
+Muscle-group filter
+Notes
+Additional workout-management polish
