@@ -119,4 +119,7 @@ interface SessionLogDao {
             (SELECT id FROM workout_days WHERE isRecovery = 0)
     """)
     suspend fun getCompletedNonRecoverySessionsCount(): Int
+
+    @Query("DELETE FROM session_logs")
+    suspend fun deleteAll()
 }

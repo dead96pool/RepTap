@@ -52,6 +52,16 @@ fun ProgressScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            Button(
+                onClick = {
+                    viewModel.seedFakeDataForTesting()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Reset + Seed Fake Data (TEMP)")
+            }
+        }
+        item {
             summary?.let { s ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -61,10 +71,23 @@ fun ProgressScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ProgressStatRow("Total Sessions", "${s.totalSessions}")
-                        ProgressStatRow("Average Duration", "${s.averageDurationMillis / 60000} min")
                         ProgressStatRow(
-                            "Sessions per Week",
+                            "Total Sessions",
+                            "${s.totalSessions}"
+                        )
+
+                        ProgressStatRow(
+                            "This Week",
+                            "${s.sessionsThisWeek}"
+                        )
+
+                        ProgressStatRow(
+                            "Average Duration",
+                            "${s.averageDurationMillis / 60000} min"
+                        )
+
+                        ProgressStatRow(
+                            "Average per Week",
                             "${(s.averageSessionsPerWeek * 10).roundToInt() / 10.0}"
                         )
                     }

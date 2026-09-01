@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.SessionLog
 import com.chani.reptap.data.local.entity.SessionStatus
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.data.local.entity.SetLog
 import com.chani.reptap.data.repository.CycleRepository
 import com.chani.reptap.data.repository.WorkoutRepository
@@ -21,12 +22,15 @@ data class ActiveWorkoutUiState(
     val currentExerciseIndex: Int = 0,
     val currentSetNumber: Int = 1,
     val repsTapped: Int = 0,
+    val timedSecondsElapsed: Int = 0,
+    val isTimedSetRunning: Boolean = false,
     val phase: SetPhase = SetPhase.COUNTING_REPS,
     val secondsRemaining: Int = 0,
-    val weightKg: Float = 5f,
+    val weightKg: Float? = null,
     val isLoading: Boolean = true
 ) {
-    val currentExercise: WorkoutExerciseWithName? get() = exercises.getOrNull(currentExerciseIndex)
+    val currentExercise: WorkoutExerciseWithName?
+        get() = exercises.getOrNull(currentExerciseIndex)
 }
 
 class ActiveWorkoutViewModel(
@@ -40,6 +44,7 @@ class ActiveWorkoutViewModel(
 
     private var sessionId: Long = -1L
     private var timerJob: kotlinx.coroutines.Job? = null
+    private var timedSetTimerJob: kotlinx.coroutines.Job? = null
 
     init {
         loadExercises()
@@ -78,10 +83,82 @@ class ActiveWorkoutViewModel(
         _uiState.value = state.copy(repsTapped = state.repsTapped - 1)
     }
 
+    fun startTimedSet() {
+        val state = _uiState.value
+        val exercise = state.currentExercise ?: return
+
+        if (state.phase != SetPhase.COUNTING_REPS) return
+        if (exercise.trackingType != ExerciseTrackingType.TIME) return
+        if (state.isTimedSetRunning) return
+
+        _uiState.value = state.copy(
+            isTimedSetRunning = true
+        )
+
+        timedSetTimerJob?.cancel()
+        timedSetTimerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+
+                val currentState = _uiState.value
+
+                if (
+                    currentState.phase != SetPhase.COUNTING_REPS ||
+                    currentState.currentExercise?.trackingType != ExerciseTrackingType.TIME ||
+                    !currentState.isTimedSetRunning
+                ) {
+                    break
+                }
+
+                _uiState.value = currentState.copy(
+                    timedSecondsElapsed =
+                        currentState.timedSecondsElapsed + 1
+                )
+            }
+        }
+    }
+
+    fun pauseTimedSet() {
+        val state = _uiState.value
+
+        if (!state.isTimedSetRunning) return
+
+        timedSetTimerJob?.cancel()
+        timedSetTimerJob = null
+
+        _uiState.value = state.copy(
+            isTimedSetRunning = false
+        )
+    }
+
     fun finishSet() {
         val state = _uiState.value
         val exercise = state.currentExercise ?: return
+
         if (state.phase != SetPhase.COUNTING_REPS) return
+
+        val isTimedExercise =
+            exercise.trackingType == ExerciseTrackingType.TIME
+
+        if (isTimedExercise) {
+            val minimumDuration =
+                exercise.targetDurationMinSec ?: 0
+
+            if (state.timedSecondsElapsed < minimumDuration) {
+                return
+            }
+        } else {
+            if (state.repsTapped < exercise.repRangeMin) {
+                return
+            }
+        }
+
+        timedSetTimerJob?.cancel()
+        timedSetTimerJob = null
+
+        _uiState.value = state.copy(
+            isTimedSetRunning = false
+        )
 
         viewModelScope.launch {
             workoutRepository.logSet(
@@ -89,21 +166,46 @@ class ActiveWorkoutViewModel(
                     sessionLogId = sessionId,
                     workoutExerciseId = exercise.id,
                     setNumber = state.currentSetNumber,
-                    repsCompleted = state.repsTapped,
+                    repsCompleted =
+                        if (isTimedExercise) 0
+                        else state.repsTapped,
+                    durationCompletedSec =
+                        if (isTimedExercise) state.timedSecondsElapsed
+                        else null,
                     weightKg = state.weightKg,
                     timestamp = System.currentTimeMillis()
                 )
             )
 
-            val isLastSetOfExercise = state.currentSetNumber >= exercise.targetSets
-            val restDuration = if (isLastSetOfExercise) exercise.restBeforeNextSec else exercise.restBetweenSetsSec
-            val nextPhase = if (isLastSetOfExercise) SetPhase.RESTING_BEFORE_NEXT_EXERCISE else SetPhase.RESTING_BETWEEN_SETS
+            val isLastSetOfExercise =
+                state.currentSetNumber >= exercise.targetSets
+
+            val restDuration =
+                if (isLastSetOfExercise) {
+                    exercise.restBeforeNextSec
+                } else {
+                    exercise.restBetweenSetsSec
+                }
+
+            val nextPhase =
+                if (isLastSetOfExercise) {
+                    SetPhase.RESTING_BEFORE_NEXT_EXERCISE
+                } else {
+                    SetPhase.RESTING_BETWEEN_SETS
+                }
 
             if (restDuration <= 0) {
                 advanceAfterRest(isLastSetOfExercise)
             } else {
-                _uiState.value = _uiState.value.copy(phase = nextPhase, secondsRemaining = restDuration)
-                startTimer(restDuration, isLastSetOfExercise)
+                _uiState.value = _uiState.value.copy(
+                    phase = nextPhase,
+                    secondsRemaining = restDuration
+                )
+
+                startTimer(
+                    restDuration,
+                    isLastSetOfExercise
+                )
             }
         }
     }
@@ -132,6 +234,8 @@ class ActiveWorkoutViewModel(
                     currentExerciseIndex = nextIndex,
                     currentSetNumber = 1,
                     repsTapped = 0,
+                    timedSecondsElapsed = 0,
+                    isTimedSetRunning = false,
                     phase = SetPhase.COUNTING_REPS,
                     weightKg = state.exercises[nextIndex].defaultWeightKg
                 )
@@ -140,6 +244,8 @@ class ActiveWorkoutViewModel(
             _uiState.value = state.copy(
                 currentSetNumber = state.currentSetNumber + 1,
                 repsTapped = 0,
+                timedSecondsElapsed = 0,
+                isTimedSetRunning = false,
                 phase = SetPhase.COUNTING_REPS
             )
         }
@@ -172,5 +278,6 @@ class ActiveWorkoutViewModel(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        timedSetTimerJob?.cancel()
     }
 }

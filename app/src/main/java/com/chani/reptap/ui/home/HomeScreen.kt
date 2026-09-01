@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,11 +189,34 @@ private fun ExerciseRow(ex: WorkoutExerciseWithName) {
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f)
         )
+
         Spacer(Modifier.width(8.dp))
-        val weightText = if (ex.defaultWeightKg == ex.defaultWeightKg.toInt().toFloat())
-            "${ex.defaultWeightKg.toInt()}kg" else "${ex.defaultWeightKg}kg"
+
+        val targetText =
+            when (ex.trackingType) {
+                ExerciseTrackingType.REPS -> {
+                    "${ex.targetSets} sets · ${ex.repRangeMin} reps"
+                }
+
+                ExerciseTrackingType.TIME -> {
+                    val minSec = ex.targetDurationMinSec ?: 0
+                    val maxSec = ex.targetDurationMaxSec ?: minSec
+
+                    "${ex.targetSets} sets · $minSec-$maxSec sec"
+                }
+            }
+
+        val loadText =
+            ex.defaultWeightKg?.let { weight ->
+                if (weight == weight.toInt().toFloat()) {
+                    "${weight.toInt()}kg"
+                } else {
+                    "${weight}kg"
+                }
+            } ?: "Bodyweight"
+
         Text(
-            text = "${ex.targetSets} sets · ${ex.repRangeMin} reps · $weightText",
+            text = "$targetText · $loadText",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Medium
         )

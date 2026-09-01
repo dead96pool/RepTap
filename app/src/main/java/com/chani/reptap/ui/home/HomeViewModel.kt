@@ -33,10 +33,15 @@ class HomeViewModel(
     val nextWorkoutDate: StateFlow<java.time.LocalDate?> = _nextWorkoutDate.asStateFlow()
 
     init {
-        loadToday()
         viewModelScope.launch {
             workoutRepository.workoutDays.collect { days ->
                 _allDays.value = days
+            }
+        }
+
+        viewModelScope.launch {
+            cycleRepository.cycleState.collect {
+                loadToday()
             }
         }
     }

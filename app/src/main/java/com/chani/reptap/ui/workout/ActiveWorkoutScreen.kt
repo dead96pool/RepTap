@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.ui.components.RepTapTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,18 +57,35 @@ fun ActiveWorkoutScreen(
                     }
                 }
                 state.phase == SetPhase.COUNTING_REPS -> {
-                    RepTapArea(
-                        exerciseName = state.currentExercise?.exerciseName ?: "",
-                        setNumber = state.currentSetNumber,
-                        totalSets = state.currentExercise?.targetSets ?: 1,
-                        repsTapped = state.repsTapped,
-                        repMin = state.currentExercise?.repRangeMin ?: 0,
-                        repMax = state.currentExercise?.repRangeMax ?: 0,
-                        isPerSide = state.currentExercise?.isPerSide ?: false,
-                        onTap = { viewModel.tapRep() },
-                        onUndo = { viewModel.undoTap() },
-                        onFinishSet = { viewModel.finishSet() }
-                    )
+                    val currentExercise = state.currentExercise
+
+                    if (currentExercise?.trackingType == ExerciseTrackingType.TIME) {
+                        TimedSetArea(
+                            setNumber = state.currentSetNumber,
+                            totalSets = currentExercise.targetSets,
+                            secondsElapsed = state.timedSecondsElapsed,
+                            targetMinSec = currentExercise.targetDurationMinSec ?: 0,
+                            targetMaxSec = currentExercise.targetDurationMaxSec ?: 0,
+                            isPerSide = currentExercise.isPerSide,
+                            isRunning = state.isTimedSetRunning,
+                            onStart = { viewModel.startTimedSet() },
+                            onPause = { viewModel.pauseTimedSet() },
+                            onFinishSet = { viewModel.finishSet() }
+                        )
+                    } else {
+                        RepTapArea(
+                            exerciseName = currentExercise?.exerciseName ?: "",
+                            setNumber = state.currentSetNumber,
+                            totalSets = currentExercise?.targetSets ?: 1,
+                            repsTapped = state.repsTapped,
+                            repMin = currentExercise?.repRangeMin ?: 0,
+                            repMax = currentExercise?.repRangeMax ?: 0,
+                            isPerSide = currentExercise?.isPerSide ?: false,
+                            onTap = { viewModel.tapRep() },
+                            onUndo = { viewModel.undoTap() },
+                            onFinishSet = { viewModel.finishSet() }
+                        )
+                    }
                 }
                 else -> {
                     RestTimerArea(
@@ -183,6 +201,148 @@ private fun RepTapArea(
                 }
             }
         }
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun TimedSetArea(
+    setNumber: Int,
+    totalSets: Int,
+    secondsElapsed: Int,
+    targetMinSec: Int,
+    targetMaxSec: Int,
+    isPerSide: Boolean,
+    isRunning: Boolean,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onFinishSet: () -> Unit
+) {
+    val canFinish = secondsElapsed >= targetMinSec
+
+    val minutes = secondsElapsed / 60
+    val seconds = secondsElapsed % 60
+
+    val formattedTime =
+        "%02d:%02d".format(minutes, seconds)
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "Set $setNumber of $totalSets",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Text(
+            text = buildString {
+                append("Target: ")
+
+                if (targetMaxSec > 0) {
+                    append("$targetMinSec-$targetMaxSec sec")
+                } else {
+                    append("$targetMinSec sec")
+                }
+
+                if (isPerSide) {
+                    append(" each side")
+                }
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 12.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = formattedTime,
+                        fontSize = 72.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (isRunning) {
+                                onPause()
+                            } else {
+                                onStart()
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 12.dp,
+                            bottomEnd = 0.dp
+                        ),
+                        contentPadding = PaddingValues(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor =
+                                MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text(
+                            text = when {
+                                isRunning -> "Pause"
+                                secondsElapsed > 0 -> "Resume"
+                                else -> "Start"
+                            }
+                        )
+                    }
+
+                    Button(
+                        onClick = onFinishSet,
+                        enabled = canFinish,
+                        modifier = Modifier
+                            .weight(2f)
+                            .fillMaxHeight(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 12.dp
+                        ),
+                        contentPadding = PaddingValues()
+                    ) {
+                        Text("Finish Set")
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
     }
 }

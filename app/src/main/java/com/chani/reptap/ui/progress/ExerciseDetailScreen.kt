@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
 import com.chani.reptap.data.local.dao.ExerciseSetDetail
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.ui.components.RepTapTopAppBar
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
@@ -126,11 +127,58 @@ fun ExerciseDetailScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val avgReps = (s.averageReps * 10).roundToInt() / 10.0
-                        DetailStatRow("Average Reps (per set)", "$avgReps")
-                        DetailStatRow("Best Single Set", "${s.bestSingleSetReps} reps")
-                        DetailStatRow("Sessions Logged", "${s.sessionsLogged}")
-                        DetailStatRow("Last Performed", dateFormat.format(java.util.Date(s.lastPerformedAt)))
+                        when (s.trackingType) {
+                            ExerciseTrackingType.REPS -> {
+                                val avgReps =
+                                    (s.averageReps * 10).roundToInt() / 10.0
+
+                                DetailStatRow(
+                                    "Average Reps (per set)",
+                                    "$avgReps"
+                                )
+
+                                DetailStatRow(
+                                    "Best Single Set",
+                                    "${s.bestSingleSetReps} reps"
+                                )
+                            }
+
+                            ExerciseTrackingType.TIME -> {
+                                val avgDuration =
+                                    s.averageDurationSec?.let {
+                                        (it * 10).roundToInt() / 10.0
+                                    }
+
+                                DetailStatRow(
+                                    "Average Hold",
+                                    if (avgDuration != null) {
+                                        "$avgDuration sec"
+                                    } else {
+                                        "-"
+                                    }
+                                )
+
+                                DetailStatRow(
+                                    "Best Hold",
+                                    s.bestDurationSec?.let {
+                                        "$it sec"
+                                    } ?: "-"
+                                )
+                            }
+                        }
+
+                        DetailStatRow(
+                            "Sessions Logged",
+                            "${s.sessionsLogged}"
+                        )
+
+                        DetailStatRow(
+                            "Last Performed",
+                            dateFormat.format(
+                                java.util.Date(s.lastPerformedAt)
+                            )
+                        )
+
                         TrendStatRow(percentChange)
                     }
                 }
@@ -166,17 +214,71 @@ fun ExerciseDetailScreen(
                 }
                 val (niceSetsAxisMax, setsAxisStep) = remember(globalMaxSets) { niceAxisMaximum(globalMaxSets) }
 
+                val globalMaxAverageDuration = remember(monthlyChartData) {
+                    monthlyChartData.values
+                        .flatten()
+                        .maxOfOrNull { it.avgDurationSec?.toFloat() ?: 0f }
+                        ?: 1f
+                }
+
+                val (
+                    niceAverageDurationAxisMax,
+                    averageDurationAxisStep
+                ) = remember(globalMaxAverageDuration) {
+                    niceAxisMaximum(globalMaxAverageDuration)
+                }
+
+                val globalMaxBestDuration = remember(monthlyChartData) {
+                    monthlyChartData.values
+                        .flatten()
+                        .maxOfOrNull { it.maxDurationSec?.toFloat() ?: 0f }
+                        ?: 1f
+                }
+
+                val (
+                    niceBestDurationAxisMax,
+                    bestDurationAxisStep
+                ) = remember(globalMaxBestDuration) {
+                    niceAxisMaximum(globalMaxBestDuration)
+                }
+
+                val hasExternalWeight = remember(setDetailsBySession) {
+                    setDetailsBySession.values
+                        .flatten()
+                        .any { it.weightKg != null }
+                }
+
                 val sharedTextMeasurer = rememberTextMeasurer()
                 val sharedDensity = LocalDensity.current
-                val sharedLeftPadDp = remember(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax) {
-                    val allMaxValues = listOf(niceAxisMax, niceRepsAxisMax, niceVolumeAxisMax, niceBestRepsAxisMax, niceSetsAxisMax)
+                val sharedLeftPadDp = remember(
+                    niceAxisMax,
+                    niceRepsAxisMax,
+                    niceVolumeAxisMax,
+                    niceBestRepsAxisMax,
+                    niceSetsAxisMax,
+                    niceAverageDurationAxisMax,
+                    niceBestDurationAxisMax
+                ) {
+                    val allMaxValues = listOf(
+                        niceAxisMax,
+                        niceRepsAxisMax,
+                        niceVolumeAxisMax,
+                        niceBestRepsAxisMax,
+                        niceSetsAxisMax,
+                        niceAverageDurationAxisMax,
+                        niceBestDurationAxisMax
+                    )
                     val widestPx = allMaxValues.maxOf { maxVal ->
                         sharedTextMeasurer.measure(
                             maxVal.roundToInt().toString(),
-                            androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+                            androidx.compose.ui.text.TextStyle(
+                                fontSize = 11.sp
+                            )
                         ).size.width
                     }
-                    with(sharedDensity) { widestPx.toDp() } + 4.dp
+                    with(sharedDensity) {
+                        widestPx.toDp()
+                    } + 4.dp
                 }
 
                 var weightMonthIndex by remember(sortedMonths) {
@@ -221,146 +323,386 @@ fun ExerciseDetailScreen(
                     val setsSessionCount = monthlyChartData[setsMonth]?.size ?: 0
                     val setsPoints = monthlyChartData[setsMonth].orEmpty()
 
-                    Text(
-                        "Weight Over Time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
+                    if (stats?.trackingType == ExerciseTrackingType.REPS) {
 
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(4.dp)) {
-                            MonthSelectorRow(
-                                label = "${weightMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${weightMonth.year} · $weightSessionCount session${if (weightSessionCount == 1) "" else "s"}",
-                                canGoPrevious = weightMonthIndex > 0,
-                                canGoNext = weightMonthIndex < sortedMonths.size - 1,
-                                onPrevious = { weightMonthIndex-- },
-                                onNext = { weightMonthIndex++ }
-                            )
-                            MonthChart(
-                                month = weightMonth,
-                                points = weightPoints,
-                                axisMax = niceAxisMax,
-                                axisStep = axisStep,
-                                valueSelector = { it.avgWeightKg },
-                                unitLabel = "kg",
-                                leftPadDp = sharedLeftPadDp,
-                                setDetailsBySession = setDetailsBySession
-                            )
+                        Text(
+                            "Weight Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(4.dp)) {
+                                MonthSelectorRow(
+                                    label = "${
+                                        weightMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )
+                                    } ${weightMonth.year} · $weightSessionCount session${if (weightSessionCount == 1) "" else "s"}",
+                                    canGoPrevious = weightMonthIndex > 0,
+                                    canGoNext = weightMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = { weightMonthIndex-- },
+                                    onNext = { weightMonthIndex++ }
+                                )
+                                MonthChart(
+                                    month = weightMonth,
+                                    points = weightPoints,
+                                    axisMax = niceAxisMax,
+                                    axisStep = axisStep,
+                                    valueSelector = { it.avgWeightKg },
+                                    unitLabel = "kg",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession
+                                )
+                            }
+                        }
+
+                        Text(
+                            "Reps Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(4.dp)) {
+                                MonthSelectorRow(
+                                    label = "${
+                                        repsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )
+                                    } ${repsMonth.year} · $repsSessionCount session${if (repsSessionCount == 1) "" else "s"}",
+                                    canGoPrevious = repsMonthIndex > 0,
+                                    canGoNext = repsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = { repsMonthIndex-- },
+                                    onNext = { repsMonthIndex++ }
+                                )
+                                MonthChart(
+                                    month = repsMonth,
+                                    points = repsPoints,
+                                    axisMax = niceRepsAxisMax,
+                                    axisStep = repsAxisStep,
+                                    valueSelector = { it.avgReps.toFloat() },
+                                    unitLabel = "",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession
+                                )
+                            }
+                        }
+
+                        Text(
+                            "Volume Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(4.dp)) {
+                                MonthSelectorRow(
+                                    label = "${
+                                        volumeMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )
+                                    } ${volumeMonth.year} · $volumeSessionCount session${if (volumeSessionCount == 1) "" else "s"}",
+                                    canGoPrevious = volumeMonthIndex > 0,
+                                    canGoNext = volumeMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = { volumeMonthIndex-- },
+                                    onNext = { volumeMonthIndex++ }
+                                )
+                                MonthChart(
+                                    month = volumeMonth,
+                                    points = volumePoints,
+                                    axisMax = niceVolumeAxisMax,
+                                    axisStep = volumeAxisStep,
+                                    valueSelector = { it.totalVolume.toFloat() },
+                                    unitLabel = "",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession
+                                )
+                            }
+                        }
+
+                        Text(
+                            "Best Single-Set Reps Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(4.dp)) {
+                                MonthSelectorRow(
+                                    label = "${
+                                        bestRepsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )
+                                    } ${bestRepsMonth.year} · $bestRepsSessionCount session${if (bestRepsSessionCount == 1) "" else "s"}",
+                                    canGoPrevious = bestRepsMonthIndex > 0,
+                                    canGoNext = bestRepsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = { bestRepsMonthIndex-- },
+                                    onNext = { bestRepsMonthIndex++ }
+                                )
+                                MonthChart(
+                                    month = bestRepsMonth,
+                                    points = bestRepsPoints,
+                                    axisMax = niceBestRepsAxisMax,
+                                    axisStep = bestRepsAxisStep,
+                                    valueSelector = { it.maxReps.toFloat() },
+                                    unitLabel = "",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession
+                                )
+                            }
+                        }
+
+                        Text(
+                            "Sets Per Session Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        )
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(4.dp)) {
+                                MonthSelectorRow(
+                                    label = "${
+                                        setsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )
+                                    } ${setsMonth.year} · $setsSessionCount session${if (setsSessionCount == 1) "" else "s"}",
+                                    canGoPrevious = setsMonthIndex > 0,
+                                    canGoNext = setsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = { setsMonthIndex-- },
+                                    onNext = { setsMonthIndex++ }
+                                )
+                                MonthChart(
+                                    month = setsMonth,
+                                    points = setsPoints,
+                                    axisMax = niceSetsAxisMax,
+                                    axisStep = setsAxisStep,
+                                    valueSelector = { it.setsCount.toFloat() },
+                                    unitLabel = "",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession
+                                )
+                            }
                         }
                     }
 
-                    Text(
-                        "Reps Over Time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
+                    if (stats?.trackingType == ExerciseTrackingType.TIME) {
+                        Text(
+                            "Average Hold Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                top = 16.dp,
+                                bottom = 8.dp
+                            )
+                        )
 
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(4.dp)) {
-                            MonthSelectorRow(
-                                label = "${repsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${repsMonth.year} · $repsSessionCount session${if (repsSessionCount == 1) "" else "s"}",
-                                canGoPrevious = repsMonthIndex > 0,
-                                canGoNext = repsMonthIndex < sortedMonths.size - 1,
-                                onPrevious = { repsMonthIndex-- },
-                                onNext = { repsMonthIndex++ }
-                            )
-                            MonthChart(
-                                month = repsMonth,
-                                points = repsPoints,
-                                axisMax = niceRepsAxisMax,
-                                axisStep = repsAxisStep,
-                                valueSelector = { it.avgReps.toFloat() },
-                                unitLabel = "",
-                                leftPadDp = sharedLeftPadDp,
-                                setDetailsBySession = setDetailsBySession
-                            )
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                MonthSelectorRow(
+                                    label =
+                                        "${repsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )} ${repsMonth.year} · " +
+                                                "$repsSessionCount session" +
+                                                if (repsSessionCount == 1) "" else "s",
+                                    canGoPrevious = repsMonthIndex > 0,
+                                    canGoNext =
+                                        repsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = {
+                                        repsMonthIndex--
+                                    },
+                                    onNext = {
+                                        repsMonthIndex++
+                                    }
+                                )
+
+                                MonthChart(
+                                    month = repsMonth,
+                                    points = repsPoints,
+                                    axisMax = niceAverageDurationAxisMax,
+                                    axisStep = averageDurationAxisStep,
+                                    valueSelector = {
+                                        it.avgDurationSec?.toFloat() ?: 0f
+                                    },
+                                    unitLabel = " sec",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession,
+                                    setDetailFormatter = ::formatTimedSetDetail
+                                )
+                            }
                         }
-                    }
 
-                    Text(
-                        "Volume Over Time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
+                        Text(
+                            "Best Hold Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                top = 16.dp,
+                                bottom = 8.dp
+                            )
+                        )
 
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(4.dp)) {
-                            MonthSelectorRow(
-                                label = "${volumeMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${volumeMonth.year} · $volumeSessionCount session${if (volumeSessionCount == 1) "" else "s"}",
-                                canGoPrevious = volumeMonthIndex > 0,
-                                canGoNext = volumeMonthIndex < sortedMonths.size - 1,
-                                onPrevious = { volumeMonthIndex-- },
-                                onNext = { volumeMonthIndex++ }
-                            )
-                            MonthChart(
-                                month = volumeMonth,
-                                points = volumePoints,
-                                axisMax = niceVolumeAxisMax,
-                                axisStep = volumeAxisStep,
-                                valueSelector = { it.totalVolume.toFloat() },
-                                unitLabel = "",
-                                leftPadDp = sharedLeftPadDp,
-                                setDetailsBySession = setDetailsBySession
-                            )
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                MonthSelectorRow(
+                                    label =
+                                        "${bestRepsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )} ${bestRepsMonth.year} · " +
+                                                "$bestRepsSessionCount session" +
+                                                if (bestRepsSessionCount == 1) "" else "s",
+                                    canGoPrevious = bestRepsMonthIndex > 0,
+                                    canGoNext =
+                                        bestRepsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = {
+                                        bestRepsMonthIndex--
+                                    },
+                                    onNext = {
+                                        bestRepsMonthIndex++
+                                    }
+                                )
+
+                                MonthChart(
+                                    month = bestRepsMonth,
+                                    points = bestRepsPoints,
+                                    axisMax = niceBestDurationAxisMax,
+                                    axisStep = bestDurationAxisStep,
+                                    valueSelector = {
+                                        it.maxDurationSec?.toFloat() ?: 0f
+                                    },
+                                    unitLabel = " sec",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession = setDetailsBySession,
+                                    setDetailFormatter = ::formatTimedSetDetail
+                                )
+                            }
                         }
-                    }
 
-                    Text(
-                        "Best Single-Set Reps Over Time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(4.dp)) {
-                            MonthSelectorRow(
-                                label = "${bestRepsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${bestRepsMonth.year} · $bestRepsSessionCount session${if (bestRepsSessionCount == 1) "" else "s"}",
-                                canGoPrevious = bestRepsMonthIndex > 0,
-                                canGoNext = bestRepsMonthIndex < sortedMonths.size - 1,
-                                onPrevious = { bestRepsMonthIndex-- },
-                                onNext = { bestRepsMonthIndex++ }
+                        if (hasExternalWeight) {
+                            Text(
+                                "External Weight Over Time",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(
+                                    top = 16.dp,
+                                    bottom = 8.dp
+                                )
                             )
-                            MonthChart(
-                                month = bestRepsMonth,
-                                points = bestRepsPoints,
-                                axisMax = niceBestRepsAxisMax,
-                                axisStep = bestRepsAxisStep,
-                                valueSelector = { it.maxReps.toFloat() },
-                                unitLabel = "",
-                                leftPadDp = sharedLeftPadDp,
-                                setDetailsBySession = setDetailsBySession
-                            )
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    MonthSelectorRow(
+                                        label =
+                                            "${weightMonth.month.getDisplayName(
+                                                java.time.format.TextStyle.FULL,
+                                                Locale.getDefault()
+                                            )} ${weightMonth.year} · " +
+                                                    "$weightSessionCount session" +
+                                                    if (weightSessionCount == 1) "" else "s",
+                                        canGoPrevious = weightMonthIndex > 0,
+                                        canGoNext =
+                                            weightMonthIndex < sortedMonths.size - 1,
+                                        onPrevious = {
+                                            weightMonthIndex--
+                                        },
+                                        onNext = {
+                                            weightMonthIndex++
+                                        }
+                                    )
+
+                                    MonthChart(
+                                        month = weightMonth,
+                                        points = weightPoints,
+                                        axisMax = niceAxisMax,
+                                        axisStep = axisStep,
+                                        valueSelector = {
+                                            it.avgWeightKg
+                                        },
+                                        unitLabel = "kg",
+                                        leftPadDp = sharedLeftPadDp,
+                                        setDetailsBySession =
+                                            setDetailsBySession,
+                                        setDetailFormatter =
+                                            ::formatTimedSetDetail
+                                    )
+                                }
+                            }
                         }
-                    }
 
-                    Text(
-                        "Sets Per Session Over Time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(4.dp)) {
-                            MonthSelectorRow(
-                                label = "${setsMonth.month.getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault())} ${setsMonth.year} · $setsSessionCount session${if (setsSessionCount == 1) "" else "s"}",
-                                canGoPrevious = setsMonthIndex > 0,
-                                canGoNext = setsMonthIndex < sortedMonths.size - 1,
-                                onPrevious = { setsMonthIndex-- },
-                                onNext = { setsMonthIndex++ }
+                        Text(
+                            "Sets Per Session Over Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                top = 16.dp,
+                                bottom = 8.dp
                             )
-                            MonthChart(
-                                month = setsMonth,
-                                points = setsPoints,
-                                axisMax = niceSetsAxisMax,
-                                axisStep = setsAxisStep,
-                                valueSelector = { it.setsCount.toFloat() },
-                                unitLabel = "",
-                                leftPadDp = sharedLeftPadDp,
-                                setDetailsBySession = setDetailsBySession
-                            )
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                MonthSelectorRow(
+                                    label =
+                                        "${setsMonth.month.getDisplayName(
+                                            java.time.format.TextStyle.FULL,
+                                            Locale.getDefault()
+                                        )} ${setsMonth.year} · " +
+                                                "$setsSessionCount session" +
+                                                if (setsSessionCount == 1) "" else "s",
+                                    canGoPrevious = setsMonthIndex > 0,
+                                    canGoNext =
+                                        setsMonthIndex < sortedMonths.size - 1,
+                                    onPrevious = {
+                                        setsMonthIndex--
+                                    },
+                                    onNext = {
+                                        setsMonthIndex++
+                                    }
+                                )
+
+                                MonthChart(
+                                    month = setsMonth,
+                                    points = setsPoints,
+                                    axisMax = niceSetsAxisMax,
+                                    axisStep = setsAxisStep,
+                                    valueSelector = {
+                                        it.setsCount.toFloat()
+                                    },
+                                    unitLabel = "",
+                                    leftPadDp = sharedLeftPadDp,
+                                    setDetailsBySession =
+                                        setDetailsBySession,
+                                    setDetailFormatter =
+                                        ::formatTimedSetDetail
+                                )
+                            }
                         }
                     }
                 }
@@ -422,6 +764,20 @@ private fun MonthSelectorRow(
     }
 }
 
+private fun formatTimedSetDetail(
+    set: ExerciseSetDetail
+): String {
+    val duration =
+        set.durationCompletedSec ?: 0
+
+    val weightText =
+        set.weightKg?.let { weight ->
+            " @ ${formatDecimal(weight)}kg"
+        } ?: ""
+
+    return "$duration sec$weightText"
+}
+
 @Composable
 private fun MonthChart(
     month: YearMonth,
@@ -431,7 +787,15 @@ private fun MonthChart(
     valueSelector: (ExerciseSessionDataPoint) -> Float,
     unitLabel: String,
     leftPadDp: androidx.compose.ui.unit.Dp,
-    setDetailsBySession: Map<Long, List<ExerciseSetDetail>>
+    setDetailsBySession: Map<Long, List<ExerciseSetDetail>>,
+    setDetailFormatter: (ExerciseSetDetail) -> String = { set ->
+        val weightText =
+            set.weightKg?.let { weight ->
+                " @ ${formatDecimal(weight)}kg"
+            } ?: ""
+
+        "${set.repsCompleted} reps$weightText"
+    }
 ) {
     val daysInMonth = month.lengthOfMonth()
     val pointsByDay = remember(points) {
@@ -601,7 +965,7 @@ private fun MonthChart(
                         )
                         sets.forEach { set ->
                             Text(
-                                "${set.repsCompleted}reps\u2022${formatDecimal(set.weightKg)}kg",
+                                text = setDetailFormatter(set),
                                 color = MaterialTheme.colorScheme.inverseOnSurface,
                                 style = MaterialTheme.typography.labelSmall
                             )

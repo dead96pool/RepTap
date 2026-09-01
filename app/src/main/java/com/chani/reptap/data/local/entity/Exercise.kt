@@ -5,6 +5,11 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+enum class ExerciseTrackingType {
+    REPS,
+    TIME
+}
+
 @Entity(
     tableName = "exercises",
     foreignKeys = [
@@ -23,5 +28,6 @@ data class Exercise(
     val name: String,
     val primaryMuscleId: Long,
     val isBodyweight: Boolean = false,
-    val isPerSide: Boolean = false
+    val isPerSide: Boolean = false,
+    val trackingType: ExerciseTrackingType = ExerciseTrackingType.REPS
 )

@@ -150,8 +150,30 @@ private fun ExerciseRow(group: ExerciseGroup) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             group.sets.forEach { set ->
+                val performanceText =
+                    if (set.durationCompletedSec != null) {
+                        "${set.durationCompletedSec} sec"
+                    } else {
+                        "${set.repsCompleted} reps"
+                    }
+
+                val weightText =
+                    set.weightKg?.let { weight ->
+                        val formattedWeight =
+                            if (weight == weight.toInt().toFloat()) {
+                                weight.toInt().toString()
+                            } else {
+                                weight.toString()
+                            }
+
+                        " @ ${formattedWeight}kg"
+                    } ?: ""
+
+                val setText =
+                    performanceText + weightText
+
                 Text(
-                    "${set.repsCompleted} reps @ ${set.weightKg}kg",
+                    text = setText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

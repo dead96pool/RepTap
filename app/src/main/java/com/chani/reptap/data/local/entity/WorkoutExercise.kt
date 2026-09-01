@@ -23,6 +23,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index("workoutDayId"), Index("exerciseId")]
 )
+
 data class WorkoutExercise(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -32,7 +33,9 @@ data class WorkoutExercise(
     val targetSets: Int,
     val repRangeMin: Int,
     val repRangeMax: Int,
+    val targetDurationMinSec: Int? = null,
+    val targetDurationMaxSec: Int? = null,
     val restBetweenSetsSec: Int,
     val restBeforeNextSec: Int,
-    val defaultWeightKg: Float = 5.0f
+    val defaultWeightKg: Float? = 5.0f
 )

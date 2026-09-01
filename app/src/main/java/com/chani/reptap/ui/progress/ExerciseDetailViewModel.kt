@@ -3,6 +3,7 @@ package com.chani.reptap.ui.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.dao.ExerciseDetailStats
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.data.local.dao.ExerciseSessionDataPoint
 import com.chani.reptap.data.local.dao.ExerciseSetDetail
 import com.chani.reptap.data.repository.WorkoutRepository
@@ -33,19 +34,70 @@ class ExerciseDetailViewModel(
 
     init {
         viewModelScope.launch {
-            _stats.value = repository.getExerciseDetailStats(exerciseId)
+            val exerciseStats =
+                repository.getExerciseDetailStats(exerciseId)
 
-            val volumes = repository.getAllExerciseSessionVolumes()
-                .filter { it.exerciseId == exerciseId }
-                .sortedByDescending { it.startedAt }
+            _stats.value = exerciseStats
 
-            if (volumes.size >= 6) {
-                val recent3 = volumes.subList(0, 3).map { it.sessionVolume }.average()
-                val earlier3 = volumes.subList(3, 6).map { it.sessionVolume }.average()
-                _percentChange.value = if (earlier3 == 0.0) 0.0 else ((recent3 - earlier3) / earlier3) * 100.0
+            val points =
+                repository.getExerciseSessionDataPoints(exerciseId)
+
+            when (exerciseStats?.trackingType) {
+                ExerciseTrackingType.TIME -> {
+                    val timedSessions = points
+                        .filter { it.avgDurationSec != null }
+                        .sortedByDescending { it.startedAt }
+
+                    if (timedSessions.size >= 6) {
+                        val recent3 = timedSessions
+                            .take(3)
+                            .mapNotNull { it.avgDurationSec }
+                            .average()
+
+                        val earlier3 = timedSessions
+                            .drop(3)
+                            .take(3)
+                            .mapNotNull { it.avgDurationSec }
+                            .average()
+
+                        _percentChange.value =
+                            if (earlier3 == 0.0) {
+                                0.0
+                            } else {
+                                ((recent3 - earlier3) / earlier3) * 100.0
+                            }
+                    }
+                }
+
+                ExerciseTrackingType.REPS -> {
+                    val volumes = repository
+                        .getAllExerciseSessionVolumes()
+                        .filter { it.exerciseId == exerciseId }
+                        .sortedByDescending { it.startedAt }
+
+                    if (volumes.size >= 6) {
+                        val recent3 = volumes
+                            .take(3)
+                            .map { it.sessionVolume }
+                            .average()
+
+                        val earlier3 = volumes
+                            .drop(3)
+                            .take(3)
+                            .map { it.sessionVolume }
+                            .average()
+
+                        _percentChange.value =
+                            if (earlier3 == 0.0) {
+                                0.0
+                            } else {
+                                ((recent3 - earlier3) / earlier3) * 100.0
+                            }
+                    }
+                }
+
+                null -> Unit
             }
-
-            val points = repository.getExerciseSessionDataPoints(exerciseId)
             val grouped = points.groupBy { point ->
                 val localDate = Instant.ofEpochMilli(point.startedAt).atZone(ZoneId.systemDefault()).toLocalDate()
                 YearMonth.from(localDate)

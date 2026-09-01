@@ -23,6 +23,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index("sessionLogId"), Index("workoutExerciseId")]
 )
+
 data class SetLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -30,6 +31,7 @@ data class SetLog(
     val workoutExerciseId: Long,
     val setNumber: Int,
     val repsCompleted: Int,
-    val weightKg: Float,
+    val durationCompletedSec: Int? = null,
+    val weightKg: Float?,
     val timestamp: Long
 )
