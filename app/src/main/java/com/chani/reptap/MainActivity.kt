@@ -40,6 +40,10 @@ import com.chani.reptap.ui.builder.WorkoutBuilderScreen
 import com.chani.reptap.ui.builder.WorkoutBuilderViewModel
 import com.chani.reptap.ui.builder.EditWorkoutExerciseScreen
 import com.chani.reptap.ui.builder.EditWorkoutExerciseViewModel
+import com.chani.reptap.ui.builder.AddExercisePickerScreen
+import com.chani.reptap.ui.builder.AddExercisePickerViewModel
+import com.chani.reptap.ui.builder.AddWorkoutExerciseScreen
+import com.chani.reptap.ui.builder.AddWorkoutExerciseViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -186,6 +190,117 @@ class MainActivity : ComponentActivity() {
                                 onExerciseClick = { exercise ->
                                     navController.navigate(
                                         "edit_workout_exercise/${exercise.id}"
+                                    )
+                                },
+                                onAddExercise = {
+                                    navController.navigate(
+                                        "add_exercise_picker/$dayId"
+                                    )
+                                }
+                            )
+                        }
+
+                        composable(
+                            route =
+                                "add_exercise_picker/{dayId}",
+                            arguments = listOf(
+                                navArgument("dayId") {
+                                    type = NavType.LongType
+                                }
+                            )
+                        ) { backStackEntry ->
+
+                            val dayId =
+                                backStackEntry.arguments
+                                    ?.getLong("dayId")
+                                    ?: 0L
+
+                            val pickerViewModel:
+                                    AddExercisePickerViewModel =
+                                viewModel(
+                                    key =
+                                        "add_exercise_picker_$dayId",
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                AddExercisePickerViewModel(
+                                                    repository =
+                                                        workoutRepository,
+                                                    dayId = dayId
+                                                )
+                                            }
+                                        }
+                                )
+
+                            AddExercisePickerScreen(
+                                viewModel =
+                                    pickerViewModel,
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onExerciseClick = { exercise ->
+                                    navController.navigate(
+                                        "add_workout_exercise/" +
+                                                "$dayId/${exercise.id}"
+                                    )
+                                }
+                            )
+                        }
+
+                        composable(
+                            route =
+                                "add_workout_exercise/" +
+                                        "{dayId}/{exerciseId}",
+                            arguments = listOf(
+                                navArgument("dayId") {
+                                    type = NavType.LongType
+                                },
+                                navArgument("exerciseId") {
+                                    type = NavType.LongType
+                                }
+                            )
+                        ) { backStackEntry ->
+
+                            val dayId =
+                                backStackEntry.arguments
+                                    ?.getLong("dayId")
+                                    ?: 0L
+
+                            val exerciseId =
+                                backStackEntry.arguments
+                                    ?.getLong("exerciseId")
+                                    ?: 0L
+
+                            val addViewModel:
+                                    AddWorkoutExerciseViewModel =
+                                viewModel(
+                                    key =
+                                        "add_workout_exercise_" +
+                                                "${dayId}_$exerciseId",
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                AddWorkoutExerciseViewModel(
+                                                    repository =
+                                                        workoutRepository,
+                                                    dayId = dayId,
+                                                    exerciseId =
+                                                        exerciseId
+                                                )
+                                            }
+                                        }
+                                )
+
+                            AddWorkoutExerciseScreen(
+                                viewModel = addViewModel,
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+                                onSaved = {
+                                    navController.popBackStack(
+                                        route =
+                                            "workout_builder/$dayId",
+                                        inclusive = false
                                     )
                                 }
                             )

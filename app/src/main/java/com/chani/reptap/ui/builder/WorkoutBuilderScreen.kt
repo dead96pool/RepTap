@@ -30,13 +30,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.ui.components.RepTapTopAppBar
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 
 @Composable
 fun WorkoutBuilderScreen(
     viewModel: WorkoutBuilderViewModel,
     onBack: () -> Unit,
     onExerciseClick:
-        (WorkoutExerciseWithName) -> Unit
+        (WorkoutExerciseWithName) -> Unit,
+    onAddExercise: () -> Unit
 ) {
     val workoutDay by
     viewModel.workoutDay.collectAsStateWithLifecycle()
@@ -73,6 +77,27 @@ fun WorkoutBuilderScreen(
                         MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+            }
+
+            item {
+                FilledTonalButton(
+                    onClick = onAddExercise,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector =
+                            Icons.Default.Add,
+                        contentDescription = null
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(8.dp)
+                    )
+
+                    Text("Add Exercise")
+                }
             }
 
             items(

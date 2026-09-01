@@ -107,7 +107,14 @@ interface SetLogDao {
     JOIN workout_exercises we ON sl.workoutExerciseId = we.id
     JOIN exercises e ON we.exerciseId = e.id
     WHERE sl.sessionLogId = :sessionId
-    ORDER BY we.orderIndex, sl.setNumber
+    ORDER BY
+    (
+        SELECT MIN(sl2.timestamp)
+        FROM set_logs sl2
+        WHERE sl2.sessionLogId = sl.sessionLogId
+          AND sl2.workoutExerciseId = sl.workoutExerciseId
+    ),
+    sl.setNumber
 """)
     fun getSetDetailsForSession(sessionId: Long): Flow<List<SetLogDetail>>
 

@@ -151,6 +151,89 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
+    suspend fun addWorkoutExercise(
+        dayId: Long,
+        exerciseId: Long,
+        targetSets: Int,
+        targetReps: Int,
+        targetDurationSec: Int?,
+        defaultWeightKg: Float?,
+        restBetweenSetsSec: Int,
+        restBeforeNextSec: Int
+    ): Boolean {
+        return db.withTransaction {
+            val dao =
+                db.workoutExerciseDao()
+
+            /*
+             * Prevent the same exercise from appearing twice
+             * in the active workout.
+             */
+            val alreadyActive =
+                dao.getActiveForExercise(
+                    dayId = dayId,
+                    exerciseId = exerciseId
+                )
+
+            if (alreadyActive != null) {
+                return@withTransaction false
+            }
+
+            val nextOrderIndex =
+                dao.getActiveCountForDay(dayId) + 1
+
+            /*
+             * Prefer reactivating an archived row. This keeps
+             * historical SetLog foreign-key references intact.
+             */
+            val archived =
+                dao.getInactiveForExercise(
+                    dayId = dayId,
+                    exerciseId = exerciseId
+                )
+
+            if (archived != null) {
+                dao.update(
+                    archived.copy(
+                        orderIndex = nextOrderIndex,
+                        targetSets = targetSets,
+                        targetReps = targetReps,
+                        targetDurationSec =
+                            targetDurationSec,
+                        restBetweenSetsSec =
+                            restBetweenSetsSec,
+                        restBeforeNextSec =
+                            restBeforeNextSec,
+                        defaultWeightKg =
+                            defaultWeightKg,
+                        isActive = true
+                    )
+                )
+            } else {
+                dao.insert(
+                    WorkoutExercise(
+                        workoutDayId = dayId,
+                        exerciseId = exerciseId,
+                        orderIndex = nextOrderIndex,
+                        targetSets = targetSets,
+                        targetReps = targetReps,
+                        targetDurationSec =
+                            targetDurationSec,
+                        restBetweenSetsSec =
+                            restBetweenSetsSec,
+                        restBeforeNextSec =
+                            restBeforeNextSec,
+                        defaultWeightKg =
+                            defaultWeightKg,
+                        isActive = true
+                    )
+                )
+            }
+
+            true
+        }
+    }
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip

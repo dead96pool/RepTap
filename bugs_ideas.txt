@@ -1,5 +1,6 @@
 ========== IDEAS ============
 
+- scrolling behind the keyboard when open
 - side burger menu panel with settings and workout editor
 - better home screen display with new "bodyweight" info
 - importing workouts into the workout builder

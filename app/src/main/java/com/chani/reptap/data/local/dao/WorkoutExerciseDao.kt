@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 data class WorkoutExerciseWithName(
     val id: Long,
+    val exerciseId: Long,
     val orderIndex: Int,
     val exerciseName: String,
     val targetSets: Int,
@@ -45,6 +46,7 @@ interface WorkoutExerciseDao {
 
     @Query("""
     SELECT we.id AS id,
+           we.exerciseId AS exerciseId,
            we.orderIndex AS orderIndex,
            e.name AS exerciseName,
            we.targetSets AS targetSets,
@@ -77,6 +79,7 @@ interface WorkoutExerciseDao {
 
     @Query("""
     SELECT we.id AS id,
+           we.exerciseId AS exerciseId,
            we.orderIndex AS orderIndex,
            e.name AS exerciseName,
            we.targetSets AS targetSets,
@@ -103,6 +106,31 @@ interface WorkoutExerciseDao {
 """)
     suspend fun getById(
         id: Long
+    ): WorkoutExercise?
+
+    @Query("""
+    SELECT * FROM workout_exercises
+    WHERE workoutDayId = :dayId
+      AND exerciseId = :exerciseId
+      AND isActive = 1
+    LIMIT 1
+""")
+    suspend fun getActiveForExercise(
+        dayId: Long,
+        exerciseId: Long
+    ): WorkoutExercise?
+
+    @Query("""
+    SELECT * FROM workout_exercises
+    WHERE workoutDayId = :dayId
+      AND exerciseId = :exerciseId
+      AND isActive = 0
+    ORDER BY id DESC
+    LIMIT 1
+""")
+    suspend fun getInactiveForExercise(
+        dayId: Long,
+        exerciseId: Long
     ): WorkoutExercise?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
