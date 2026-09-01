@@ -1,7 +1,7 @@
 ========== IDEAS ============
 
-- replace the range of time/reps to fixed minimum and remove maximum
-- exercise trends order option (trends, name etc)
+- side burger menu panel with settings and workout editor
+- countdown from the target than count up so target is clear for reps/times
 - better home screen display with new "bodyweight" info
 - importing workouts into the workout builder
 

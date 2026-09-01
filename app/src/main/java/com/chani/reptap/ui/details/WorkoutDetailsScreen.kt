@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chani.reptap.ui.components.RepTapTopAppBar
+import com.chani.reptap.data.local.entity.ExerciseTrackingType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +42,18 @@ fun WorkoutDetailsScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         val sideNote = if (ex.isPerSide) " each side" else ""
-                        Text("${ex.targetSets} sets x ${ex.repRangeMin}-${ex.repRangeMax} reps$sideNote")
+                        val targetText =
+                            when (ex.trackingType) {
+                                ExerciseTrackingType.REPS -> {
+                                    "${ex.targetSets} sets x ${ex.targetReps} reps$sideNote"
+                                }
+
+                                ExerciseTrackingType.TIME -> {
+                                    "${ex.targetSets} sets x ${ex.targetDurationSec ?: 0} sec$sideNote"
+                                }
+                            }
+
+                        Text(targetText)
                         Text("Rest between sets: ${ex.restBetweenSetsSec}s")
                         if (ex.restBeforeNextSec > 0) {
                             Text("Rest before next exercise: ${ex.restBeforeNextSec}s")

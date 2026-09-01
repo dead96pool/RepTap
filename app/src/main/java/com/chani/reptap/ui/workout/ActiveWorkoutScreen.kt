@@ -75,10 +75,8 @@ fun ActiveWorkoutScreen(
                             setNumber = state.currentSetNumber,
                             totalSets = currentExercise.targetSets,
                             secondsElapsed = state.timedSecondsElapsed,
-                            targetMinSec =
-                                currentExercise.targetDurationMinSec ?: 0,
-                            targetMaxSec =
-                                currentExercise.targetDurationMaxSec ?: 0,
+                            targetSec =
+                                currentExercise.targetDurationSec ?: 0,
                             isPerSide = currentExercise.isPerSide,
                             hasStarted = state.hasTimedSetStarted,
                             isRunning = state.isTimedSetRunning,
@@ -100,10 +98,8 @@ fun ActiveWorkoutScreen(
                             totalSets =
                                 currentExercise?.targetSets ?: 1,
                             repsTapped = state.repsTapped,
-                            repMin =
-                                currentExercise?.repRangeMin ?: 0,
-                            repMax =
-                                currentExercise?.repRangeMax ?: 0,
+                            targetReps =
+                                currentExercise?.targetReps ?: 0,
                             isPerSide =
                                 currentExercise?.isPerSide ?: false,
                             onTap = {
@@ -154,14 +150,14 @@ private fun RepTapArea(
     setNumber: Int,
     totalSets: Int,
     repsTapped: Int,
-    repMin: Int,
-    repMax: Int,
+    targetReps: Int,
     isPerSide: Boolean,
     onTap: () -> Unit,
     onUndo: () -> Unit,
     onFinishSet: () -> Unit
 ) {
-    val canFinish = repsTapped >= repMin
+    val canFinish =
+        repsTapped >= targetReps
 
     Column(modifier = Modifier.fillMaxSize()) {
         Spacer(Modifier.height(8.dp))
@@ -172,7 +168,7 @@ private fun RepTapArea(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Text(
-            "Target: $repMin-$repMax reps" + if (isPerSide) " each side" else "",
+            "Target: $targetReps reps" + if (isPerSide) " each side" else "",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth(),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -241,8 +237,7 @@ private fun TimedSetArea(
     setNumber: Int,
     totalSets: Int,
     secondsElapsed: Int,
-    targetMinSec: Int,
-    targetMaxSec: Int,
+    targetSec: Int,
     isPerSide: Boolean,
     hasStarted: Boolean,
     isRunning: Boolean,
@@ -251,7 +246,7 @@ private fun TimedSetArea(
     onFinishSet: () -> Unit
 ) {
     val canFinish =
-        secondsElapsed >= targetMinSec
+        secondsElapsed >= targetSec
 
     val isPaused =
         hasStarted && !isRunning
@@ -332,15 +327,7 @@ private fun TimedSetArea(
 
         Text(
             text = buildString {
-                append("Target: ")
-
-                if (targetMaxSec > 0) {
-                    append(
-                        "$targetMinSec-$targetMaxSec sec"
-                    )
-                } else {
-                    append("$targetMinSec sec")
-                }
+                append("Target: $targetSec sec")
 
                 if (isPerSide) {
                     append(" each side")

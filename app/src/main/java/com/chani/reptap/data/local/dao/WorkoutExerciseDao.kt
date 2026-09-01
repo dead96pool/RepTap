@@ -9,10 +9,8 @@ data class WorkoutExerciseWithName(
     val orderIndex: Int,
     val exerciseName: String,
     val targetSets: Int,
-    val repRangeMin: Int,
-    val repRangeMax: Int,
-    val targetDurationMinSec: Int?,
-    val targetDurationMaxSec: Int?,
+    val targetReps: Int,
+    val targetDurationSec: Int?,
     val restBetweenSetsSec: Int,
     val restBeforeNextSec: Int,
     val defaultWeightKg: Float?,
@@ -29,10 +27,12 @@ interface WorkoutExerciseDao {
     suspend fun count(): Int
 
     @Query("""
-    SELECT we.id AS id, we.orderIndex AS orderIndex, e.name AS exerciseName,
-           we.targetSets AS targetSets, we.repRangeMin AS repRangeMin, we.repRangeMax AS repRangeMax,
-           we.targetDurationMinSec AS targetDurationMinSec,
-           we.targetDurationMaxSec AS targetDurationMaxSec,
+    SELECT we.id AS id,
+           we.orderIndex AS orderIndex,
+           e.name AS exerciseName,
+           we.targetSets AS targetSets,
+           we.targetReps AS targetReps,
+           we.targetDurationSec AS targetDurationSec,
            we.restBetweenSetsSec AS restBetweenSetsSec,
            we.restBeforeNextSec AS restBeforeNextSec,
            we.defaultWeightKg AS defaultWeightKg,
@@ -43,7 +43,9 @@ interface WorkoutExerciseDao {
     WHERE we.workoutDayId = :dayId
     ORDER BY we.orderIndex
 """)
-    fun getForDayWithNames(dayId: Long): Flow<List<WorkoutExerciseWithName>>
+    fun getForDayWithNames(
+        dayId: Long
+    ): Flow<List<WorkoutExerciseWithName>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(items: List<WorkoutExercise>)

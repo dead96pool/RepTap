@@ -195,14 +195,14 @@ private fun ExerciseRow(ex: WorkoutExerciseWithName) {
         val targetText =
             when (ex.trackingType) {
                 ExerciseTrackingType.REPS -> {
-                    "${ex.targetSets} sets · ${ex.repRangeMin} reps"
+                    "${ex.targetSets} sets · ${ex.targetReps} reps"
                 }
 
                 ExerciseTrackingType.TIME -> {
-                    val minSec = ex.targetDurationMinSec ?: 0
-                    val maxSec = ex.targetDurationMaxSec ?: minSec
+                    val targetSec =
+                        ex.targetDurationSec ?: 0
 
-                    "${ex.targetSets} sets · $minSec-$maxSec sec"
+                    "${ex.targetSets} sets · $targetSec sec"
                 }
             }
 

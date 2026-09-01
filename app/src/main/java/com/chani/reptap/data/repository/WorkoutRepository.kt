@@ -150,55 +150,55 @@ class WorkoutRepository(private val db: AppDatabase) {
 
         val plan = listOf(
             // Day 1 — Arms + shoulders A
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell curl"), orderIndex = 1, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 4, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Standing dumbbell shoulder press"), orderIndex = 5, targetSets = 2, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Wrist curl"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 52),
-            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Reverse wrist curl"), orderIndex = 8, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 0),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell curl"), orderIndex = 1, targetSets = 3, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 3, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 4, targetSets = 3, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Standing dumbbell shoulder press"), orderIndex = 5, targetSets = 2, targetReps = 10, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 6, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Wrist curl"), orderIndex = 7, targetSets = 2, targetReps = 15, restBetweenSetsSec = 52, restBeforeNextSec = 52),
+            WorkoutExercise(workoutDayId = day1, exerciseId = ex("Reverse wrist curl"), orderIndex = 8, targetSets = 2, targetReps = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0),
 
             // Day 2 — Legs + chest + back + core
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Incline push-up"), orderIndex = 1, targetSets = 2, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("One-arm dumbbell row"), orderIndex = 2, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Goblet squat"), orderIndex = 3, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 105),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 4, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 105),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell floor press"), orderIndex = 5, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Reverse fly"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Glute bridge"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Side plank"), orderIndex = 8, targetSets = 2, repRangeMin = 0, repRangeMax = 0, targetDurationMinSec = 20, targetDurationMaxSec = 45, restBetweenSetsSec = 45, restBeforeNextSec = 45, defaultWeightKg = null),
-            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Russian twist"), orderIndex = 9, targetSets = 2, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Incline push-up"), orderIndex = 1, targetSets = 2, targetReps = 6, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("One-arm dumbbell row"), orderIndex = 2, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Goblet squat"), orderIndex = 3, targetSets = 2, targetReps = 15, restBetweenSetsSec = 105, restBeforeNextSec = 105),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 4, targetSets = 2, targetReps = 15, restBetweenSetsSec = 105, restBeforeNextSec = 105),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Dumbbell floor press"), orderIndex = 5, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Reverse fly"), orderIndex = 6, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Glute bridge"), orderIndex = 7, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Side plank"), orderIndex = 8, targetSets = 2, targetReps = 0, targetDurationSec = 20, restBetweenSetsSec = 45, restBeforeNextSec = 45, defaultWeightKg = null),
+            WorkoutExercise(workoutDayId = day2, exerciseId = ex("Russian twist"), orderIndex = 9, targetSets = 2, targetReps = 10, restBetweenSetsSec = 52, restBeforeNextSec = 0),
 
             // Day 4 — Arms + shoulders B
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Seated preacher-style supinated curl"), orderIndex = 1, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 3, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 4, targetSets = 3, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 5, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Reverse fly"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell shrug"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 8, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 68, restBeforeNextSec = 0),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Seated preacher-style supinated curl"), orderIndex = 1, targetSets = 3, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Cross-body hammer curl"), orderIndex = 2, targetSets = 3, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 3, targetSets = 3, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 4, targetSets = 3, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell lateral raise"), orderIndex = 5, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Reverse fly"), orderIndex = 6, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell shrug"), orderIndex = 7, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day4, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 8, targetSets = 2, targetReps = 12, restBetweenSetsSec = 68, restBeforeNextSec = 0),
 
             // Day 5 — Legs + chest + back + core
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Split squat"), orderIndex = 1, targetSets = 2, repRangeMin = 10, repRangeMax = 18, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 2, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 105, restBeforeNextSec = 105),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Slow-tempo sumo squat"), orderIndex = 3, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 90, restBeforeNextSec = 90),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Incline close-grip push-up"), orderIndex = 4, targetSets = 2, repRangeMin = 6, repRangeMax = 12, restBetweenSetsSec = 105, restBeforeNextSec = 105),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("One-arm dumbbell row"), orderIndex = 5, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Dumbbell squeeze floor press"), orderIndex = 6, targetSets = 2, repRangeMin = 12, repRangeMax = 25, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Calf raise"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 52),
-            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bent-knee leg raise"), orderIndex = 8, targetSets = 2, repRangeMin = 10, repRangeMax = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Split squat"), orderIndex = 1, targetSets = 2, targetReps = 10, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Dumbbell Romanian deadlift"), orderIndex = 2, targetSets = 2, targetReps = 15, restBetweenSetsSec = 105, restBeforeNextSec = 105),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Slow-tempo sumo squat"), orderIndex = 3, targetSets = 2, targetReps = 15, restBetweenSetsSec = 90, restBeforeNextSec = 90),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Incline close-grip push-up"), orderIndex = 4, targetSets = 2, targetReps = 6, restBetweenSetsSec = 105, restBeforeNextSec = 105),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("One-arm dumbbell row"), orderIndex = 5, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Dumbbell squeeze floor press"), orderIndex = 6, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Calf raise"), orderIndex = 7, targetSets = 2, targetReps = 15, restBetweenSetsSec = 52, restBeforeNextSec = 52),
+            WorkoutExercise(workoutDayId = day5, exerciseId = ex("Bent-knee leg raise"), orderIndex = 8, targetSets = 2, targetReps = 10, restBetweenSetsSec = 52, restBeforeNextSec = 0),
 
             // Day 6 — Arm thickness specialization
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Cross-body hammer curl"), orderIndex = 1, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 2, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Seated preacher-style supinated curl"), orderIndex = 3, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 75, restBeforeNextSec = 75),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 4, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 5, targetSets = 2, repRangeMin = 12, repRangeMax = 20, restBetweenSetsSec = 82, restBeforeNextSec = 82),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 6, targetSets = 2, repRangeMin = 15, repRangeMax = 25, restBetweenSetsSec = 68, restBeforeNextSec = 68),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Wrist curl"), orderIndex = 7, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 52),
-            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Reverse wrist curl"), orderIndex = 8, targetSets = 2, repRangeMin = 15, repRangeMax = 30, restBetweenSetsSec = 52, restBeforeNextSec = 0)
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Cross-body hammer curl"), orderIndex = 1, targetSets = 2, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Dumbbell reverse curl"), orderIndex = 2, targetSets = 2, targetReps = 12, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Seated preacher-style supinated curl"), orderIndex = 3, targetSets = 2, targetReps = 12, restBetweenSetsSec = 75, restBeforeNextSec = 75),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Overhead dumbbell triceps extension"), orderIndex = 4, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Dumbbell skullcrusher on floor"), orderIndex = 5, targetSets = 2, targetReps = 12, restBetweenSetsSec = 82, restBeforeNextSec = 82),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Bent-over triceps kickback"), orderIndex = 6, targetSets = 2, targetReps = 15, restBetweenSetsSec = 68, restBeforeNextSec = 68),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Wrist curl"), orderIndex = 7, targetSets = 2, targetReps = 15, restBetweenSetsSec = 52, restBeforeNextSec = 52),
+            WorkoutExercise(workoutDayId = day6, exerciseId = ex("Reverse wrist curl"), orderIndex = 8, targetSets = 2, targetReps = 15, restBetweenSetsSec = 52, restBeforeNextSec = 0)
         )
 
         weDao.insertAll(plan)
@@ -343,9 +343,8 @@ class WorkoutRepository(private val db: AppDatabase) {
                             exercise.trackingType ==
                             ExerciseTrackingType.TIME
                         ) {
-                            val minimum =
-                                exercise.targetDurationMinSec
-                                    ?: 20
+                            val targetDuration =
+                                exercise.targetDurationSec ?: 20
 
                             /*
                              * Side Plank progresses steadily:
@@ -354,12 +353,11 @@ class WorkoutRepository(private val db: AppDatabase) {
                              * middle sessions ~30 sec
                              * later sessions 40+ sec
                              *
-                             * The final generated values can exceed
-                             * the configured target maximum, testing
-                             * the fact that timed sets are not capped.
+                             * Timed performance is free to continue beyond
+                             * the configured target.
                              */
                             val durationSeconds =
-                                minimum +
+                                targetDuration +
                                         cycleIndex * 3 +
                                         setIndex * 2
 
@@ -377,49 +375,47 @@ class WorkoutRepository(private val db: AppDatabase) {
                                 )
                             )
                         } else {
-                            val repMin =
-                                exercise.repRangeMin
+                            val targetReps =
+                                exercise.targetReps
 
-                            val repMax =
-                                exercise.repRangeMax
-
-                            val repRange =
-                                (repMax - repMin)
-                                    .coerceAtLeast(0)
-
+                            /*
+                             * There is no longer a configured maximum.
+                             *
+                             * Fake performance is generated relative to the
+                             * exercise's single target instead.
+                             *
+                             * Trend groups remain:
+                             *
+                             * 0 -> improving
+                             * 1 -> declining
+                             * 2 -> approximately flat
+                             *
+                             * Importantly, declining test data approaches the
+                             * target but never drops below it.
+                             */
                             val sessionReps =
                                 when (trendGroup) {
                                     0 -> {
-                                        // Clearly improving.
-                                        repMin +
-                                                (
-                                                        repRange *
-                                                                cycleIndex /
-                                                                8
-                                                        )
+                                        // Gradually improve above target.
+                                        targetReps +
+                                                cycleIndex / 2
                                     }
 
                                     1 -> {
-                                        // Clearly declining.
-                                        repMax -
-                                                (
-                                                        repRange *
-                                                                cycleIndex /
-                                                                8
-                                                        )
+                                        // Start above target and gradually
+                                        // decline back toward the target.
+                                        targetReps +
+                                                (8 - cycleIndex) / 2
                                     }
 
                                     else -> {
-                                        // Roughly stable.
-                                        repMin +
-                                                repRange / 2
+                                        // Stable performance above target.
+                                        targetReps + 2
                                     }
                                 }
 
                             /*
-                             * Sets within the same session aren't
-                             * identical. Later sets generally lose
-                             * a small number of reps.
+                             * Sets within the same workout still vary slightly.
                              */
                             val setAdjustment =
                                 when (setIndex) {
@@ -430,17 +426,11 @@ class WorkoutRepository(private val db: AppDatabase) {
 
                             val completedReps =
                                 (sessionReps + setAdjustment)
-                                    .coerceIn(
-                                        repMin,
-                                        repMax
-                                    )
+                                    .coerceAtLeast(targetReps)
 
                             /*
-                             * For exercises that actually have an
-                             * external load, some trend groups gain
-                             * weight over time.
-                             *
-                             * Bodyweight/null-load exercises remain null.
+                             * Existing external-weight trend behaviour remains
+                             * unchanged.
                              */
                             val loggedWeight =
                                 exercise.defaultWeightKg
@@ -448,10 +438,7 @@ class WorkoutRepository(private val db: AppDatabase) {
                                         when (trendGroup) {
                                             0 -> {
                                                 baseWeight +
-                                                        (
-                                                                cycleIndex /
-                                                                        3
-                                                                ) * 0.5f
+                                                        (cycleIndex / 3) * 0.5f
                                             }
 
                                             1 -> {
@@ -460,9 +447,7 @@ class WorkoutRepository(private val db: AppDatabase) {
 
                                             else -> {
                                                 baseWeight +
-                                                        if (
-                                                            cycleIndex >= 6
-                                                        ) {
+                                                        if (cycleIndex >= 6) {
                                                             0.5f
                                                         } else {
                                                             0f
@@ -476,12 +461,9 @@ class WorkoutRepository(private val db: AppDatabase) {
                                     sessionLogId = sessionId,
                                     workoutExerciseId = exercise.id,
                                     setNumber = setNumber,
-                                    repsCompleted =
-                                        completedReps,
-                                    durationCompletedSec =
-                                        null,
-                                    weightKg =
-                                        loggedWeight,
+                                    repsCompleted = completedReps,
+                                    durationCompletedSec = null,
+                                    weightKg = loggedWeight,
                                     timestamp = timestamp
                                 )
                             )

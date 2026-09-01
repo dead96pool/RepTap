@@ -143,14 +143,14 @@ class ActiveWorkoutViewModel(
             exercise.trackingType == ExerciseTrackingType.TIME
 
         if (isTimedExercise) {
-            val minimumDuration =
-                exercise.targetDurationMinSec ?: 0
+            val targetDuration =
+                exercise.targetDurationSec ?: 0
 
-            if (state.timedSecondsElapsed < minimumDuration) {
+            if (state.timedSecondsElapsed < targetDuration) {
                 return
             }
         } else {
-            if (state.repsTapped < exercise.repRangeMin) {
+            if (state.repsTapped < exercise.targetReps) {
                 return
             }
         }
