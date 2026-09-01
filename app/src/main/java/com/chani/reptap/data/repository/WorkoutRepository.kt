@@ -234,6 +234,67 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
+    suspend fun reorderWorkoutExercises(
+        dayId: Long,
+        orderedWorkoutExerciseIds: List<Long>
+    ): Boolean {
+        return db.withTransaction {
+            val dao =
+                db.workoutExerciseDao()
+
+            val current =
+                dao.getForDayOnce(dayId)
+
+            val currentIds =
+                current.map { it.id }
+
+            /*
+             * Refuse an invalid reorder rather than risking
+             * silently corrupting workout structure.
+             */
+            if (
+                orderedWorkoutExerciseIds.size !=
+                currentIds.size ||
+                orderedWorkoutExerciseIds
+                    .distinct()
+                    .size !=
+                currentIds.size ||
+                orderedWorkoutExerciseIds.toSet() !=
+                currentIds.toSet()
+            ) {
+                return@withTransaction false
+            }
+
+            val exercisesById =
+                current.associateBy { it.id }
+
+            orderedWorkoutExerciseIds
+                .forEachIndexed { index, id ->
+
+                    val exercise =
+                        exercisesById[id]
+                            ?: return@withTransaction false
+
+                    val newOrderIndex =
+                        index + 1
+
+                    if (
+                        exercise.orderIndex !=
+                        newOrderIndex
+                    ) {
+                        dao.update(
+                            exercise.copy(
+                                orderIndex =
+                                    newOrderIndex
+                            )
+                        )
+                    }
+                }
+
+            true
+        }
+    }
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip
