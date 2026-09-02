@@ -295,6 +295,31 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
+    suspend fun renameWorkout(
+        dayId: Long,
+        newName: String
+    ): Boolean {
+        val trimmedName =
+            newName.trim()
+
+        if (trimmedName.isBlank()) {
+            return false
+        }
+
+        val current =
+            db.workoutDayDao()
+                .getById(dayId)
+                ?: return false
+
+        db.workoutDayDao().update(
+            current.copy(
+                name = trimmedName
+            )
+        )
+
+        return true
+    }
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip
@@ -545,10 +570,16 @@ class WorkoutRepository(private val db: AppDatabase) {
                 val sessionId =
                     sessionDao.insert(
                         SessionLog(
-                            workoutDayId = workoutDay.id,
-                            startedAt = startedAt,
-                            finishedAt = finishedAt,
-                            status = SessionStatus.COMPLETED
+                            workoutDayId =
+                                workoutDay.id,
+                            workoutDayNameSnapshot =
+                                workoutDay.name,
+                            startedAt =
+                                startedAt,
+                            finishedAt =
+                                finishedAt,
+                            status =
+                                SessionStatus.COMPLETED
                         )
                     )
 
@@ -748,9 +779,23 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun startSession(dayId: Long): Long {
+    suspend fun startSession(
+        dayId: Long
+    ): Long {
+        val workoutDay =
+            db.workoutDayDao()
+                .getById(dayId)
+                ?: return -1L
+
         return db.sessionLogDao().insert(
-            SessionLog(workoutDayId = dayId, startedAt = System.currentTimeMillis())
+            SessionLog(
+                workoutDayId =
+                    dayId,
+                workoutDayNameSnapshot =
+                    workoutDay.name,
+                startedAt =
+                    System.currentTimeMillis()
+            )
         )
     }
 

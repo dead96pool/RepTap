@@ -25,4 +25,18 @@ interface WorkoutDayDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(days: List<WorkoutDay>)
+
+    @Query("""
+    SELECT * FROM workout_days
+    WHERE id = :id
+    LIMIT 1
+""")
+    suspend fun getById(
+        id: Long
+    ): WorkoutDay?
+
+    @Update
+    suspend fun update(
+        day: WorkoutDay
+    )
 }

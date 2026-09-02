@@ -38,9 +38,31 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            workoutRepository.workoutDays.collect { days ->
-                _allDays.value = days
-            }
+            workoutRepository.workoutDays
+                .collect { days ->
+
+                    _allDays.value =
+                        days
+
+                    /*
+                     * Keep the current Home WorkoutDay object
+                     * synchronized with edits such as Rename.
+                     */
+                    val currentId =
+                        _todayWorkout.value?.id
+
+                    if (currentId != null) {
+                        val updatedDay =
+                            days.firstOrNull {
+                                it.id == currentId
+                            }
+
+                        if (updatedDay != null) {
+                            _todayWorkout.value =
+                                updatedDay
+                        }
+                    }
+                }
         }
 
         viewModelScope.launch {

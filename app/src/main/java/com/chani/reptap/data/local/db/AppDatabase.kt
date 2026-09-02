@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SetLog::class,
         CycleState::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 
@@ -52,6 +52,43 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 }
             }
+        private val MIGRATION_9_10 =
+            object : Migration(9, 10) {
+
+                override fun migrate(
+                    database: SupportSQLiteDatabase
+                ) {
+                    database.execSQL(
+                        """
+                ALTER TABLE session_logs
+                ADD COLUMN workoutDayNameSnapshot TEXT
+                NOT NULL DEFAULT ''
+                """.trimIndent()
+                    )
+
+                    /*
+                     * Existing sessions were created before
+                     * snapshots existed, so preserve their
+                     * current workout name as their historical
+                     * name.
+                     */
+                    database.execSQL(
+                        """
+                UPDATE session_logs
+                SET workoutDayNameSnapshot =
+                    COALESCE(
+                        (
+                            SELECT wd.name
+                            FROM workout_days wd
+                            WHERE wd.id =
+                                session_logs.workoutDayId
+                        ),
+                        ''
+                    )
+                """.trimIndent()
+                    )
+                }
+            }
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -61,7 +98,8 @@ abstract class AppDatabase : RoomDatabase() {
                     "reptap_database"
                 )
                     .addMigrations(
-                        MIGRATION_8_9
+                        MIGRATION_8_9,
+                        MIGRATION_9_10
                     )
                     .fallbackToDestructiveMigration(true)
                     .build()

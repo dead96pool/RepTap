@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -90,6 +91,18 @@ fun WorkoutBuilderScreen(
         mutableStateOf<List<Long>?>(null)
     }
 
+    var showWorkoutMenu by remember {
+        mutableStateOf(false)
+    }
+
+    var showRenameDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var renameText by remember {
+        mutableStateOf("")
+    }
+
     LaunchedEffect(
         exercises,
         isReorderMode,
@@ -141,16 +154,62 @@ fun WorkoutBuilderScreen(
                 title =
                     workoutDay?.name
                         ?: "Workout Builder",
+
                 onBack = {
                     if (isReorderMode) {
-                        /*
-                         * Back cancels unsaved reorder
-                         * changes rather than leaving
-                         * the screen unexpectedly.
-                         */
                         cancelReorder()
                     } else {
                         onBack()
+                    }
+                },
+
+                actions = {
+                    if (!isReorderMode) {
+                        Box {
+                            IconButton(
+                                onClick = {
+                                    showWorkoutMenu =
+                                        true
+                                }
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        Icons.Default
+                                            .MoreVert,
+                                    contentDescription =
+                                        "Workout options"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded =
+                                    showWorkoutMenu,
+                                onDismissRequest = {
+                                    showWorkoutMenu =
+                                        false
+                                }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Rename workout"
+                                        )
+                                    },
+                                    onClick = {
+                                        showWorkoutMenu =
+                                            false
+
+                                        renameText =
+                                            workoutDay
+                                                ?.name
+                                                .orEmpty()
+
+                                        showRenameDialog =
+                                            true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -614,6 +673,72 @@ fun WorkoutBuilderScreen(
                 }
             }
         }
+    }
+
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showRenameDialog =
+                    false
+            },
+
+            title = {
+                Text("Rename workout")
+            },
+
+            text = {
+                OutlinedTextField(
+                    value =
+                        renameText,
+                    onValueChange = {
+                        renameText =
+                            it
+                    },
+                    label = {
+                        Text(
+                            "Workout name"
+                        )
+                    },
+                    singleLine = true
+                )
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            val success =
+                                viewModel
+                                    .renameWorkout(
+                                        renameText
+                                    )
+
+                            if (success) {
+                                showRenameDialog =
+                                    false
+                            }
+                        }
+                    },
+                    enabled =
+                        renameText
+                            .trim()
+                            .isNotEmpty()
+                ) {
+                    Text("Save")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRenameDialog =
+                            false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

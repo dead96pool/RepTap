@@ -79,6 +79,15 @@ class WorkoutBuilderViewModel(
         }
     }
 
+    suspend fun renameWorkout(
+        newName: String
+    ): Boolean {
+        return repository.renameWorkout(
+            dayId = dayId,
+            newName = newName
+        )
+    }
+
     fun clearOrderSaveError() {
         _orderSaveError.value = null
     }
