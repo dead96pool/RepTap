@@ -1,6 +1,8 @@
 ========== IDEAS ============
 
 - scrolling behind the keyboard when open
+- better home screen display with new "bodyweight" info
+
 
 - move the add exercise to top bar + reorder (perhaps better polished options)
 - side burger menu panel with settings and workout editor
@@ -10,11 +12,12 @@
 - editing workout freely without changing select workout day
 - long pressing in edit workout screen to give option to delete/move maybe
 
-- better home screen display with new "bodyweight" info
 
 - fix the fixed 7 day loop hardcoded, instead it should be based on the workout
 
 - editing charts to be smart, add weight over time if the workout ever was with weights
+
+- option to finish set lower than target
 
 
 

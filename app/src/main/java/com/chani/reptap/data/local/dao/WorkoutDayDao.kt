@@ -17,7 +17,10 @@ interface WorkoutDayDao {
     @Query("SELECT * FROM workout_days WHERE slotNumber = :slot LIMIT 1")
     suspend fun getBySlot(slot: Int): WorkoutDay?
 
-    @Query("SELECT * FROM workout_days")
+    @Query("""
+    SELECT * FROM workout_days
+    ORDER BY slotNumber
+""")
     suspend fun getAllOnce(): List<WorkoutDay>
 
     @Query("SELECT id, slotNumber FROM workout_days ORDER BY slotNumber")

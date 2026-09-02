@@ -2,7 +2,6 @@ package com.chani.reptap.data.repository
 
 import com.chani.reptap.data.local.db.AppDatabase
 import com.chani.reptap.data.local.entity.CycleState
-import com.chani.reptap.data.local.entity.SessionLog
 import com.chani.reptap.data.local.entity.SessionStatus
 import com.chani.reptap.data.local.entity.WorkoutDay
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +10,11 @@ import java.time.LocalDate
 class CycleRepository(private val db: AppDatabase) {
 
     val cycleState: Flow<CycleState?> = db.cycleStateDao().observe()
+
+    private data class NextTrainingDay(
+        val day: WorkoutDay,
+        val daysAhead: Long
+    )
 
     suspend fun getCurrentDay(): WorkoutDay? {
         val state = ensureStateExists()
@@ -41,17 +45,65 @@ class CycleRepository(private val db: AppDatabase) {
         return LocalDate.ofEpochDay(state.scheduledEpochDay)
     }
 
-    // Returns the date of the NEXT training day (skipping over recovery slots),
-    // without actually advancing the stored state. Used for display only.
-    suspend fun getNextWorkoutDate(): LocalDate {
-        val state = ensureStateExists()
-        var slot = state.currentSlot
+    private suspend fun findNextTrainingDay(
+        currentSlot: Int
+    ): NextTrainingDay? {
+        val days =
+            db.workoutDayDao()
+                .getAllOnce()
+
+        if (days.isEmpty()) {
+            return null
+        }
+
+        val currentIndex =
+            days.indexOfFirst {
+                it.slotNumber == currentSlot
+            }
+
+        /*
+         * If the current slot somehow no longer exists,
+         * start from the beginning rather than relying on
+         * a hard-coded slot number.
+         */
+        val startIndex =
+            if (currentIndex >= 0) {
+                currentIndex
+            } else {
+                days.lastIndex
+            }
+
         var daysAhead = 0L
-        do {
-            slot = if (slot >= 7) 1 else slot + 1
-            daysAhead += 1
-        } while (db.workoutDayDao().getBySlot(slot)?.isRecovery == true)
-        return LocalDate.ofEpochDay(state.scheduledEpochDay).plusDays(daysAhead)
+
+        /*
+         * Examine at most one complete cycle.
+         *
+         * Recovery slots still count as elapsed calendar
+         * days, but are skipped as workout destinations.
+         */
+        for (offset in 1..days.size) {
+            val index =
+                (startIndex + offset) %
+                        days.size
+
+            val candidate =
+                days[index]
+
+            daysAhead += 1L
+
+            if (!candidate.isRecovery) {
+                return NextTrainingDay(
+                    day = candidate,
+                    daysAhead = daysAhead
+                )
+            }
+        }
+
+        /*
+         * A cycle containing only recovery days has no
+         * valid next workout.
+         */
+        return null
     }
 
     suspend fun setSlotManually(slot: Int) {
@@ -60,21 +112,33 @@ class CycleRepository(private val db: AppDatabase) {
         )
     }
 
-    suspend fun completeSession(sessionId: Long) {
+    suspend fun completeSession(
+        sessionId: Long
+    ) {
         val session = db.sessionLogDao().getById(sessionId) ?: return
         db.sessionLogDao().update(session.copy(finishedAt = System.currentTimeMillis(), status = SessionStatus.COMPLETED))
 
         val state = ensureStateExists()
-        var nextSlot = state.currentSlot
-        var daysAhead = 0L
-        do {
-            nextSlot = if (nextSlot >= 7) 1 else nextSlot + 1
-            daysAhead += 1
-        } while (db.workoutDayDao().getBySlot(nextSlot)?.isRecovery == true)
 
-        val nextScheduledDate = LocalDate.ofEpochDay(state.scheduledEpochDay).plusDays(daysAhead)
+        val next = findNextTrainingDay(state.currentSlot) ?: return
+
+        val completionDate =
+            LocalDate.now()
+
+        val nextScheduledDate =
+            completionDate.plusDays(
+                next.daysAhead
+            )
+
         db.cycleStateDao().upsert(
-            CycleState(id = 1, currentSlot = nextSlot, scheduledEpochDay = nextScheduledDate.toEpochDay())
+            CycleState(
+                id = 1,
+                currentSlot =
+                    next.day.slotNumber,
+                scheduledEpochDay =
+                    nextScheduledDate
+                        .toEpochDay()
+            )
         )
     }
 }
