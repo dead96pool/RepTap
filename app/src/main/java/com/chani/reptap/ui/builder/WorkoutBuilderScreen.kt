@@ -35,7 +35,9 @@ fun WorkoutBuilderScreen(
     onBack: () -> Unit,
     onExerciseClick:
         (WorkoutExerciseWithName) -> Unit,
-    onAddExercise: () -> Unit
+    onAddExercise: () -> Unit,
+    onWorkoutDuplicated:
+        (Long) -> Unit
 ) {
     val workoutDay by
     viewModel.workoutDay
@@ -51,6 +53,14 @@ fun WorkoutBuilderScreen(
 
     val orderSaveError by
     viewModel.orderSaveError
+        .collectAsStateWithLifecycle()
+
+    val isDuplicating by
+    viewModel.isDuplicating
+        .collectAsStateWithLifecycle()
+
+    val duplicateError by
+    viewModel.duplicateError
         .collectAsStateWithLifecycle()
 
     val listState =
@@ -100,6 +110,14 @@ fun WorkoutBuilderScreen(
     }
 
     var renameText by remember {
+        mutableStateOf("")
+    }
+
+    var showDuplicateDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var duplicateName by remember {
         mutableStateOf("")
     }
 
@@ -205,6 +223,31 @@ fun WorkoutBuilderScreen(
                                                 .orEmpty()
 
                                         showRenameDialog =
+                                            true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Duplicate workout"
+                                        )
+                                    },
+                                    onClick = {
+                                        showWorkoutMenu =
+                                            false
+
+                                        duplicateName =
+                                            workoutDay
+                                                ?.name
+                                                ?.let {
+                                                    "$it Copy"
+                                                }
+                                                ?: ""
+
+                                        viewModel
+                                            .clearDuplicateError()
+
+                                        showDuplicateDialog =
                                             true
                                     }
                                 )
@@ -673,6 +716,145 @@ fun WorkoutBuilderScreen(
                 }
             }
         }
+    }
+
+    if (showDuplicateDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDuplicating) {
+                    showDuplicateDialog =
+                        false
+
+                    viewModel
+                        .clearDuplicateError()
+                }
+            },
+
+            title = {
+                Text(
+                    "Duplicate workout"
+                )
+            },
+
+            text = {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+                    Text(
+                        "Create a copy of this workout " +
+                                "with the same exercises " +
+                                "and settings."
+                    )
+
+                    OutlinedTextField(
+                        value =
+                            duplicateName,
+                        onValueChange = {
+                            duplicateName =
+                                it
+
+                            viewModel
+                                .clearDuplicateError()
+                        },
+                        label = {
+                            Text(
+                                "New workout name"
+                            )
+                        },
+                        enabled =
+                            !isDuplicating,
+                        singleLine = true,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                    )
+
+                    duplicateError?.let {
+                            error ->
+                        Text(
+                            text = error,
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+                        )
+                    }
+                }
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            val newDayId =
+                                viewModel
+                                    .duplicateWorkout(
+                                        duplicateName
+                                    )
+
+                            if (
+                                newDayId != null
+                            ) {
+                                showDuplicateDialog =
+                                    false
+
+                                onWorkoutDuplicated(
+                                    newDayId
+                                )
+                            }
+                        }
+                    },
+                    enabled =
+                        duplicateName
+                            .trim()
+                            .isNotEmpty() &&
+                                !isDuplicating
+                ) {
+                    if (isDuplicating) {
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(
+                                    18.dp
+                                ),
+                            strokeWidth =
+                                2.dp
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    8.dp
+                                )
+                        )
+                    }
+
+                    Text("Duplicate")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDuplicateDialog =
+                            false
+
+                        viewModel
+                            .clearDuplicateError()
+                    },
+                    enabled =
+                        !isDuplicating
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showRenameDialog) {

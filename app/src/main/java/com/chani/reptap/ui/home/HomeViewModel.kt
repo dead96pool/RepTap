@@ -33,6 +33,18 @@ class HomeViewModel(
     private val _nextWorkoutDate = MutableStateFlow<java.time.LocalDate?>(null)
     val nextWorkoutDate: StateFlow<java.time.LocalDate?> = _nextWorkoutDate.asStateFlow()
 
+    private val _isCreatingWorkout =
+        MutableStateFlow(false)
+
+    val isCreatingWorkout =
+        _isCreatingWorkout.asStateFlow()
+
+    private val _createWorkoutError =
+        MutableStateFlow<String?>(null)
+
+    val createWorkoutError =
+        _createWorkoutError.asStateFlow()
+
     private var todayExercisesJob:
             Job? = null
 
@@ -142,5 +154,60 @@ class HomeViewModel(
             cycleRepository.setSlotManually(day.slotNumber)
             loadToday()
         }
+    }
+
+    suspend fun createWorkout(
+        name: String
+    ): Long? {
+        if (_isCreatingWorkout.value) {
+            return null
+        }
+
+        val trimmedName =
+            name.trim()
+
+        if (trimmedName.isBlank()) {
+            _createWorkoutError.value =
+                "Workout name cannot be empty"
+
+            return null
+        }
+
+        _isCreatingWorkout.value =
+            true
+
+        _createWorkoutError.value =
+            null
+
+        return try {
+            val newDayId =
+                workoutRepository
+                    .createWorkout(
+                        trimmedName
+                    )
+
+            if (newDayId == null) {
+                _createWorkoutError.value =
+                    "Unable to create workout. " +
+                            "Choose a different name."
+            }
+
+            newDayId
+        } catch (
+            exception: Exception
+        ) {
+            _createWorkoutError.value =
+                "Unable to create workout"
+
+            null
+        } finally {
+            _isCreatingWorkout.value =
+                false
+        }
+    }
+
+    fun clearCreateWorkoutError() {
+        _createWorkoutError.value =
+            null
     }
 }

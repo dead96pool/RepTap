@@ -148,7 +148,15 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(
                                         "workout_builder/${day.id}"
                                     )
-                                }
+                                },
+
+                                onWorkoutCreated = {
+                                        newDayId ->
+
+                                    navController.navigate(
+                                        "workout_builder/$newDayId"
+                                    )
+                                },
                             )
                         }
 
@@ -184,17 +192,28 @@ class MainActivity : ComponentActivity() {
                             WorkoutBuilderScreen(
                                 viewModel =
                                     workoutBuilderViewModel,
+
                                 onBack = {
                                     navController.popBackStack()
                                 },
+
                                 onExerciseClick = { exercise ->
                                     navController.navigate(
                                         "edit_workout_exercise/${exercise.id}"
                                     )
                                 },
+
                                 onAddExercise = {
                                     navController.navigate(
                                         "add_exercise_picker/$dayId"
+                                    )
+                                },
+
+                                onWorkoutDuplicated = {
+                                        newDayId ->
+
+                                    navController.navigate(
+                                        "workout_builder/$newDayId"
                                     )
                                 }
                             )

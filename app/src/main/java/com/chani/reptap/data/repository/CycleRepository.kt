@@ -89,14 +89,41 @@ class CycleRepository(private val db: AppDatabase) {
             val candidate =
                 days[index]
 
+            /*
+             * Recovery days are genuine cycle/calendar days,
+             * so they advance the scheduled date.
+             */
+            if (candidate.isRecovery) {
+                daysAhead += 1L
+                continue
+            }
+
+            val activeExerciseCount =
+                db.workoutExerciseDao()
+                    .getActiveCountForDay(
+                        candidate.id
+                    )
+
+            /*
+             * A non-recovery day with no active exercises is a
+             * draft workout.
+             *
+             * Drafts are editable and selectable manually, but
+             * do not participate in automatic cycle scheduling
+             * until their first exercise is added.
+             *
+             * They therefore do NOT consume a calendar day.
+             */
+            if (activeExerciseCount == 0) {
+                continue
+            }
+
             daysAhead += 1L
 
-            if (!candidate.isRecovery) {
-                return NextTrainingDay(
-                    day = candidate,
-                    daysAhead = daysAhead
-                )
-            }
+            return NextTrainingDay(
+                day = candidate,
+                daysAhead = daysAhead
+            )
         }
 
         /*

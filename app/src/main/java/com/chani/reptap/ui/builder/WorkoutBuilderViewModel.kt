@@ -29,6 +29,18 @@ class WorkoutBuilderViewModel(
     val orderSaveError =
         _orderSaveError.asStateFlow()
 
+    private val _isDuplicating =
+        MutableStateFlow(false)
+
+    val isDuplicating =
+        _isDuplicating.asStateFlow()
+
+    private val _duplicateError =
+        MutableStateFlow<String?>(null)
+
+    val duplicateError =
+        _duplicateError.asStateFlow()
+
     val workoutDay: StateFlow<WorkoutDay?> =
         repository.workoutDays
             .map { days ->
@@ -86,6 +98,62 @@ class WorkoutBuilderViewModel(
             dayId = dayId,
             newName = newName
         )
+    }
+
+    suspend fun duplicateWorkout(
+        newName: String
+    ): Long? {
+        if (_isDuplicating.value) {
+            return null
+        }
+
+        val trimmedName =
+            newName.trim()
+
+        if (trimmedName.isBlank()) {
+            _duplicateError.value =
+                "Workout name cannot be empty"
+
+            return null
+        }
+
+        _isDuplicating.value =
+            true
+
+        _duplicateError.value =
+            null
+
+        return try {
+            val newDayId =
+                repository.duplicateWorkout(
+                    sourceDayId =
+                        dayId,
+                    newName =
+                        trimmedName
+                )
+
+            if (newDayId == null) {
+                _duplicateError.value =
+                    "Unable to duplicate workout. " +
+                            "Choose a different name."
+            }
+
+            newDayId
+        } catch (
+            exception: Exception
+        ) {
+            _duplicateError.value =
+                "Unable to duplicate workout"
+
+            null
+        } finally {
+            _isDuplicating.value =
+                false
+        }
+    }
+
+    fun clearDuplicateError() {
+        _duplicateError.value = null
     }
 
     fun clearOrderSaveError() {

@@ -14,21 +14,42 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onStartSession: (WorkoutDay) -> Unit,
-    onEditWorkout: (WorkoutDay) -> Unit
+    onEditWorkout: (WorkoutDay) -> Unit,
+    onWorkoutCreated: (Long) -> Unit
 ) {
     val today by viewModel.todayWorkout.collectAsStateWithLifecycle()
     val allDays by viewModel.allDays.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val exercises by viewModel.todayExercises.collectAsStateWithLifecycle()
 
+    val isCreatingWorkout by
+    viewModel.isCreatingWorkout
+        .collectAsStateWithLifecycle()
+
+    val createWorkoutError by
+    viewModel.createWorkoutError
+        .collectAsStateWithLifecycle()
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
     var showDayMenu by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
+
+    var showCreateWorkoutDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var createWorkoutName by remember {
+        mutableStateOf("")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
@@ -110,6 +131,27 @@ fun HomeScreen(
                                             }
                                         )
                                     }
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Create workout"
+                                            )
+                                        },
+                                        onClick = {
+                                            showDayMenu =
+                                                false
+
+                                            createWorkoutName =
+                                                ""
+
+                                            viewModel
+                                                .clearCreateWorkoutError()
+
+                                            showCreateWorkoutDialog =
+                                                true
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -160,6 +202,7 @@ fun HomeScreen(
                             HorizontalDivider()
                             Button(
                                 onClick = { onStartSession(day) },
+                                enabled = exercises.isNotEmpty(),
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(
                                     topStart = 0.dp,
@@ -169,7 +212,15 @@ fun HomeScreen(
                                 ),
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues()
                             ) {
-                                Text("Start Session", fontSize = 16.sp)
+                                Text(
+                                    text =
+                                        if (exercises.isEmpty()) {
+                                            "Add Exercises to Start"
+                                        } else {
+                                            "Start Session"
+                                        },
+                                    fontSize = 16.sp
+                                )
                             }
                         }
                     }
@@ -196,6 +247,151 @@ fun HomeScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDayPicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showCreateWorkoutDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isCreatingWorkout) {
+                    showCreateWorkoutDialog =
+                        false
+
+                    viewModel
+                        .clearCreateWorkoutError()
+                }
+            },
+
+            title = {
+                Text(
+                    "Create workout"
+                )
+            },
+
+            text = {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+                    Text(
+                        "Create an empty workout, then " +
+                                "add and configure its exercises."
+                    )
+
+                    OutlinedTextField(
+                        value =
+                            createWorkoutName,
+
+                        onValueChange = {
+                            createWorkoutName =
+                                it
+
+                            viewModel
+                                .clearCreateWorkoutError()
+                        },
+
+                        label = {
+                            Text(
+                                "Workout name"
+                            )
+                        },
+
+                        enabled =
+                            !isCreatingWorkout,
+
+                        singleLine = true,
+
+                        modifier =
+                            Modifier.fillMaxWidth()
+                    )
+
+                    createWorkoutError?.let {
+                            error ->
+
+                        Text(
+                            text = error,
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+                        )
+                    }
+                }
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            val newDayId =
+                                viewModel
+                                    .createWorkout(
+                                        createWorkoutName
+                                    )
+
+                            if (
+                                newDayId != null
+                            ) {
+                                showCreateWorkoutDialog =
+                                    false
+
+                                onWorkoutCreated(
+                                    newDayId
+                                )
+                            }
+                        }
+                    },
+
+                    enabled =
+                        createWorkoutName
+                            .trim()
+                            .isNotEmpty() &&
+                                !isCreatingWorkout
+                ) {
+                    if (isCreatingWorkout) {
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(
+                                    18.dp
+                                ),
+                            strokeWidth =
+                                2.dp
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    8.dp
+                                )
+                        )
+                    }
+
+                    Text("Create")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCreateWorkoutDialog =
+                            false
+
+                        viewModel
+                            .clearCreateWorkoutError()
+                    },
+
+                    enabled =
+                        !isCreatingWorkout
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }

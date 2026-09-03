@@ -320,6 +320,171 @@ class WorkoutRepository(private val db: AppDatabase) {
         return true
     }
 
+    suspend fun duplicateWorkout(
+        sourceDayId: Long,
+        newName: String
+    ): Long? {
+        val trimmedName =
+            newName.trim()
+
+        if (trimmedName.isBlank()) {
+            return null
+        }
+
+        return db.withTransaction {
+            val dayDao =
+                db.workoutDayDao()
+
+            val exerciseDao =
+                db.workoutExerciseDao()
+
+            val sourceDay =
+                dayDao.getById(
+                    sourceDayId
+                )
+                    ?: return@withTransaction null
+
+            if (sourceDay.isRecovery) {
+                return@withTransaction null
+            }
+
+            val existingDays =
+                dayDao.getAllOnce()
+
+            /*
+             * Keep workout names unambiguous in menus.
+             */
+            val nameAlreadyExists =
+                existingDays.any { day ->
+                    day.name.equals(
+                        trimmedName,
+                        ignoreCase = true
+                    )
+                }
+
+            if (nameAlreadyExists) {
+                return@withTransaction null
+            }
+
+            /*
+             * New workouts are appended to the end of the
+             * current cycle.
+             */
+            val nextSlotNumber =
+                (
+                        existingDays
+                            .maxOfOrNull {
+                                it.slotNumber
+                            }
+                            ?: 0
+                        ) + 1
+
+            val newDayId =
+                dayDao.insert(
+                    WorkoutDay(
+                        name = trimmedName,
+                        slotNumber =
+                            nextSlotNumber,
+                        isRecovery = false
+                    )
+                )
+
+            if (newDayId <= 0L) {
+                return@withTransaction null
+            }
+
+            /*
+             * getForDayOnce() already returns only active
+             * workout exercises.
+             *
+             * Archived exercises that were previously removed
+             * from the source workout are therefore NOT copied.
+             */
+            val sourceExercises =
+                exerciseDao.getForDayOnce(
+                    sourceDayId
+                )
+
+            sourceExercises.forEach {
+                    sourceExercise ->
+
+                /*
+                 * id = 0 creates a completely new
+                 * WorkoutExercise row.
+                 *
+                 * This is essential: editing the duplicate
+                 * must never alter the original workout.
+                 */
+                exerciseDao.insert(
+                    sourceExercise.copy(
+                        id = 0L,
+                        workoutDayId =
+                            newDayId,
+                        isActive = true
+                    )
+                )
+            }
+
+            newDayId
+        }
+    }
+
+    suspend fun createWorkout(
+        newName: String
+    ): Long? {
+        val trimmedName =
+            newName.trim()
+
+        if (trimmedName.isBlank()) {
+            return null
+        }
+
+        return db.withTransaction {
+            val dayDao =
+                db.workoutDayDao()
+
+            val existingDays =
+                dayDao.getAllOnce()
+
+            val nameAlreadyExists =
+                existingDays.any { day ->
+                    day.name.equals(
+                        trimmedName,
+                        ignoreCase = true
+                    )
+                }
+
+            if (nameAlreadyExists) {
+                return@withTransaction null
+            }
+
+            val nextSlotNumber =
+                (
+                        existingDays
+                            .maxOfOrNull {
+                                it.slotNumber
+                            }
+                            ?: 0
+                        ) + 1
+
+            val newDayId =
+                dayDao.insert(
+                    WorkoutDay(
+                        name = trimmedName,
+                        slotNumber =
+                            nextSlotNumber,
+                        isRecovery = false
+                    )
+                )
+
+            if (newDayId <= 0L) {
+                null
+            } else {
+                newDayId
+            }
+        }
+    }
+
     suspend fun seedIfEmpty() {
         val weDao = db.workoutExerciseDao()
         if (weDao.count() > 0) return // already seeded, skip
