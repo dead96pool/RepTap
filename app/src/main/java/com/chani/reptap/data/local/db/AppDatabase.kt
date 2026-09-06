@@ -7,8 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.chani.reptap.data.local.dao.*
 import com.chani.reptap.data.local.entity.*
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+
 
 @Database(
     entities = [
@@ -20,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SetLog::class,
         CycleState::class
     ],
-    version = 10,
+    version = 12,
     exportSchema = false
 )
 
@@ -39,56 +38,6 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        private val MIGRATION_8_9 =
-            object : Migration(8, 9) {
-                override fun migrate(
-                    database: SupportSQLiteDatabase
-                ) {
-                    database.execSQL(
-                        """
-                ALTER TABLE workout_exercises
-                ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1
-                """.trimIndent()
-                    )
-                }
-            }
-        private val MIGRATION_9_10 =
-            object : Migration(9, 10) {
-
-                override fun migrate(
-                    database: SupportSQLiteDatabase
-                ) {
-                    database.execSQL(
-                        """
-                ALTER TABLE session_logs
-                ADD COLUMN workoutDayNameSnapshot TEXT
-                NOT NULL DEFAULT ''
-                """.trimIndent()
-                    )
-
-                    /*
-                     * Existing sessions were created before
-                     * snapshots existed, so preserve their
-                     * current workout name as their historical
-                     * name.
-                     */
-                    database.execSQL(
-                        """
-                UPDATE session_logs
-                SET workoutDayNameSnapshot =
-                    COALESCE(
-                        (
-                            SELECT wd.name
-                            FROM workout_days wd
-                            WHERE wd.id =
-                                session_logs.workoutDayId
-                        ),
-                        ''
-                    )
-                """.trimIndent()
-                    )
-                }
-            }
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -97,10 +46,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "reptap_database"
                 )
-                    .addMigrations(
-                        MIGRATION_8_9,
-                        MIGRATION_9_10
-                    )
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

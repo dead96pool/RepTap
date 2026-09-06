@@ -20,14 +20,34 @@ enum class ExerciseTrackingType {
             onDelete = ForeignKey.RESTRICT
         )
     ],
-    indices = [Index("primaryMuscleId")]
+    indices = [
+        Index("primaryMuscleId"),
+        Index(
+            value = ["historyKey"],
+            unique = true
+        )
+    ]
 )
 data class Exercise(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+
+    /*
+     * Permanent logical identity.
+     *
+     * Unlike the Room row ID, this value belongs to the
+     * logical exercise and survives future delete/restore
+     * workflows.
+     *
+     * Built-in exercises use deterministic keys.
+     * Future custom exercises will use generated UUIDs.
+     */
+    val historyKey: String,
+
     val name: String,
     val primaryMuscleId: Long,
     val isBodyweight: Boolean = false,
     val isPerSide: Boolean = false,
-    val trackingType: ExerciseTrackingType = ExerciseTrackingType.REPS
+    val trackingType: ExerciseTrackingType =
+        ExerciseTrackingType.REPS
 )

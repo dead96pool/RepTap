@@ -493,68 +493,264 @@ class WorkoutRepository(private val db: AppDatabase) {
         val exerciseDao = db.exerciseDao()
         val dayDao = db.workoutDayDao()
 
-        val muscleNames = listOf("Biceps", "Triceps", "Shoulders", "Forearms", "Chest", "Back", "Legs", "Core")
-        muscleDao.insertAll(muscleNames.map { MuscleGroup(name = it) })
-        val muscles = muscleDao.getAllOnce().associateBy { it.name }
+        data class MuscleSeed(
+            val historyKey: String,
+            val name: String
+        )
 
-        fun m(name: String) = muscles.getValue(name).id
+        val muscleDefs = listOf(
+            MuscleSeed(
+                historyKey = "builtin.muscle.biceps",
+                name = "Biceps"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.triceps",
+                name = "Triceps"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.shoulders",
+                name = "Shoulders"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.forearms",
+                name = "Forearms"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.chest",
+                name = "Chest"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.back",
+                name = "Back"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.legs",
+                name = "Legs"
+            ),
+            MuscleSeed(
+                historyKey = "builtin.muscle.core",
+                name = "Core"
+            )
+        )
+
+        muscleDao.insertAll(
+            muscleDefs.map { definition ->
+                MuscleGroup(
+                    historyKey = definition.historyKey,
+                    name = definition.name
+                )
+            }
+        )
+
+        val muscles =
+            muscleDao.getAllOnce()
+                .associateBy { it.name }
+
+        fun m(name: String) =
+            muscles.getValue(name).id
 
         data class ExerciseSeed(
+            val historyKey: String,
             val name: String,
             val muscle: String,
             val isPerSide: Boolean,
-            val trackingType: ExerciseTrackingType = ExerciseTrackingType.REPS
+            val trackingType: ExerciseTrackingType =
+                ExerciseTrackingType.REPS
         )
 
         val exerciseDefs = listOf(
-            ExerciseSeed("Dumbbell curl", "Biceps", true),
-            ExerciseSeed("Cross-body hammer curl", "Biceps", true),
-            ExerciseSeed("Overhead dumbbell triceps extension", "Triceps", true),
-            ExerciseSeed("Dumbbell skullcrusher on floor", "Triceps", false),
-            ExerciseSeed("Standing dumbbell shoulder press", "Shoulders", false),
-            ExerciseSeed("Dumbbell lateral raise", "Shoulders", false),
-            ExerciseSeed("Wrist curl", "Forearms", false),
-            ExerciseSeed("Reverse wrist curl", "Forearms", false),
-            ExerciseSeed("Incline push-up", "Chest", false),
-            ExerciseSeed("One-arm dumbbell row", "Back", true),
-            ExerciseSeed("Goblet squat", "Legs", false),
-            ExerciseSeed("Dumbbell Romanian deadlift", "Legs", false),
-            ExerciseSeed("Dumbbell floor press", "Chest", false),
-            ExerciseSeed("Reverse fly", "Shoulders", false),
-            ExerciseSeed("Glute bridge", "Legs", false),
-
             ExerciseSeed(
+                "builtin.exercise.dumbbell-curl",
+                "Dumbbell curl",
+                "Biceps",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.cross-body-hammer-curl",
+                "Cross-body hammer curl",
+                "Biceps",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.overhead-dumbbell-triceps-extension",
+                "Overhead dumbbell triceps extension",
+                "Triceps",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-skullcrusher-on-floor",
+                "Dumbbell skullcrusher on floor",
+                "Triceps",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.standing-dumbbell-shoulder-press",
+                "Standing dumbbell shoulder press",
+                "Shoulders",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-lateral-raise",
+                "Dumbbell lateral raise",
+                "Shoulders",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.wrist-curl",
+                "Wrist curl",
+                "Forearms",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.reverse-wrist-curl",
+                "Reverse wrist curl",
+                "Forearms",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.incline-push-up",
+                "Incline push-up",
+                "Chest",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.one-arm-dumbbell-row",
+                "One-arm dumbbell row",
+                "Back",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.goblet-squat",
+                "Goblet squat",
+                "Legs",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-romanian-deadlift",
+                "Dumbbell Romanian deadlift",
+                "Legs",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-floor-press",
+                "Dumbbell floor press",
+                "Chest",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.reverse-fly",
+                "Reverse fly",
+                "Shoulders",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.glute-bridge",
+                "Glute bridge",
+                "Legs",
+                false
+            ),
+            ExerciseSeed(
+                historyKey = "builtin.exercise.side-plank",
                 name = "Side plank",
                 muscle = "Core",
                 isPerSide = true,
                 trackingType = ExerciseTrackingType.TIME
             ),
-
-            ExerciseSeed("Russian twist", "Core", true),
-            ExerciseSeed("Seated preacher-style supinated curl", "Biceps", true),
-            ExerciseSeed("Bent-over triceps kickback", "Triceps", true),
-            ExerciseSeed("Dumbbell shrug", "Shoulders", false),
-            ExerciseSeed("Dumbbell reverse curl", "Forearms", false),
-            ExerciseSeed("Split squat", "Legs", true),
-            ExerciseSeed("Slow-tempo sumo squat", "Legs", false),
-            ExerciseSeed("Incline close-grip push-up", "Chest", false),
-            ExerciseSeed("Dumbbell squeeze floor press", "Chest", false),
-            ExerciseSeed("Calf raise", "Legs", false),
-            ExerciseSeed("Bent-knee leg raise", "Core", false)
+            ExerciseSeed(
+                "builtin.exercise.russian-twist",
+                "Russian twist",
+                "Core",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.seated-preacher-style-supinated-curl",
+                "Seated preacher-style supinated curl",
+                "Biceps",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.bent-over-triceps-kickback",
+                "Bent-over triceps kickback",
+                "Triceps",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-shrug",
+                "Dumbbell shrug",
+                "Shoulders",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-reverse-curl",
+                "Dumbbell reverse curl",
+                "Forearms",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.split-squat",
+                "Split squat",
+                "Legs",
+                true
+            ),
+            ExerciseSeed(
+                "builtin.exercise.slow-tempo-sumo-squat",
+                "Slow-tempo sumo squat",
+                "Legs",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.incline-close-grip-push-up",
+                "Incline close-grip push-up",
+                "Chest",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.dumbbell-squeeze-floor-press",
+                "Dumbbell squeeze floor press",
+                "Chest",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.calf-raise",
+                "Calf raise",
+                "Legs",
+                false
+            ),
+            ExerciseSeed(
+                "builtin.exercise.bent-knee-leg-raise",
+                "Bent-knee leg raise",
+                "Core",
+                false
+            )
         )
 
         exerciseDao.insertAll(
             exerciseDefs.map { definition ->
                 Exercise(
+                    historyKey = definition.historyKey,
                     name = definition.name,
                     primaryMuscleId = m(definition.muscle),
                     isBodyweight =
-                        definition.name.contains("push-up", true) ||
-                                definition.name.contains("plank", true) ||
-                                definition.name.contains("twist", true) ||
-                                definition.name.contains("leg raise", true),
-                    isPerSide = definition.isPerSide,
-                    trackingType = definition.trackingType
+                        definition.name.contains(
+                            "push-up",
+                            true
+                        ) ||
+                                definition.name.contains(
+                                    "plank",
+                                    true
+                                ) ||
+                                definition.name.contains(
+                                    "twist",
+                                    true
+                                ) ||
+                                definition.name.contains(
+                                    "leg raise",
+                                    true
+                                ),
+                    isPerSide =
+                        definition.isPerSide,
+                    trackingType =
+                        definition.trackingType
                 )
             }
         )
