@@ -1,8 +1,8 @@
 package com.chani.reptap.data.local.dao
 
 import androidx.room.*
-import com.chani.reptap.data.local.entity.SetLog
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
+import com.chani.reptap.data.local.entity.SetLog
 import kotlinx.coroutines.flow.Flow
 
 data class MuscleProgress(
@@ -67,7 +67,7 @@ data class ExerciseSetDetail(
 data class ExerciseTrendSession(
     val exerciseId: Long,
     val exerciseName: String,
-    val trackingType: com.chani.reptap.data.local.entity.ExerciseTrackingType,
+    val trackingType: ExerciseTrackingType,
     val sessionLogId: Long,
     val startedAt: Long,
     val sessionVolume: Double,
@@ -76,172 +76,336 @@ data class ExerciseTrendSession(
 
 @Dao
 interface SetLogDao {
+
     @Insert
-    suspend fun insert(setLog: SetLog): Long
+    suspend fun insert(
+        setLog: SetLog
+    ): Long
 
-    @Query("SELECT * FROM set_logs WHERE sessionLogId = :sessionId ORDER BY setNumber")
-    fun getForSession(sessionId: Long): Flow<List<SetLog>>
+    @Query(
+        """
+        SELECT sl.*
 
-    @Query("""
-        SELECT m.name AS muscleName, 
-               SUM(s.repsCompleted) AS totalReps, 
-               COUNT(s.id) AS totalSets, 
-               AVG(s.weightKg) AS avgWeight
+        FROM set_logs sl
+
+        INNER JOIN session_exercise_logs sel
+            ON sl.sessionExerciseLogId = sel.id
+
+        WHERE sel.sessionLogId = :sessionId
+
+        ORDER BY
+            sel.orderIndex,
+            sl.setNumber
+        """
+    )
+    fun getForSession(
+        sessionId: Long
+    ): Flow<List<SetLog>>
+
+    @Query(
+        """
+        SELECT
+            sel.primaryMuscleNameSnapshot AS muscleName,
+            SUM(s.repsCompleted) AS totalReps,
+            COUNT(s.id) AS totalSets,
+            AVG(s.weightKg) AS avgWeight
+
         FROM set_logs s
-        JOIN workout_exercises we ON s.workoutExerciseId = we.id
-        JOIN exercises e ON we.exerciseId = e.id
-        JOIN muscle_groups m ON e.primaryMuscleId = m.id
-        WHERE s.timestamp BETWEEN :startTime AND :endTime
-        GROUP BY m.name
-    """)
-    fun getMuscleProgress(startTime: Long, endTime: Long): Flow<List<MuscleProgress>>
 
-    @Query("""
-    SELECT e.name AS exerciseName,
-           we.orderIndex AS orderIndex,
-           sl.setNumber AS setNumber,
-           sl.repsCompleted AS repsCompleted,
-           sl.durationCompletedSec AS durationCompletedSec,
-           sl.weightKg AS weightKg
-    FROM set_logs sl
-    JOIN workout_exercises we ON sl.workoutExerciseId = we.id
-    JOIN exercises e ON we.exerciseId = e.id
-    WHERE sl.sessionLogId = :sessionId
-    ORDER BY
-    (
-        SELECT MIN(sl2.timestamp)
-        FROM set_logs sl2
-        WHERE sl2.sessionLogId = sl.sessionLogId
-          AND sl2.workoutExerciseId = sl.workoutExerciseId
-    ),
-    sl.setNumber
-""")
-    fun getSetDetailsForSession(sessionId: Long): Flow<List<SetLogDetail>>
+        INNER JOIN session_exercise_logs sel
+            ON s.sessionExerciseLogId = sel.id
 
-    @Query("""
-    SELECT
-        e.id AS exerciseId,
-        e.name AS exerciseName,
-        e.isBodyweight AS isBodyweight,
-        s.id AS sessionLogId,
-        s.startedAt AS startedAt,
-        SUM(
-            CASE WHEN e.isBodyweight = 1
-                 THEN sl.repsCompleted
-                 ELSE sl.repsCompleted * sl.weightKg
-            END
-        ) AS sessionVolume
-    FROM set_logs sl
-    JOIN workout_exercises we ON sl.workoutExerciseId = we.id
-    JOIN exercises e ON we.exerciseId = e.id
-    JOIN session_logs s ON sl.sessionLogId = s.id
-    WHERE s.status = 'COMPLETED'
-      AND e.trackingType = 'REPS'
-    GROUP BY e.id, s.id
-""")
-    suspend fun getAllExerciseSessionVolumes(): List<ExerciseSessionVolume>
+        WHERE s.timestamp
+            BETWEEN :startTime AND :endTime
 
-    @Query("""
-    SELECT
-        e.name AS exerciseName,
-        e.isBodyweight AS isBodyweight,
-        e.trackingType AS trackingType,
-        AVG(sl.repsCompleted) AS averageReps,
-        MAX(sl.repsCompleted) AS bestSingleSetReps,
-        AVG(sl.durationCompletedSec) AS averageDurationSec,
-        MAX(sl.durationCompletedSec) AS bestDurationSec,
-        COUNT(DISTINCT s.id) AS sessionsLogged,
-        SUM(sl.repsCompleted) AS totalReps,
-        MAX(s.startedAt) AS lastPerformedAt
-    FROM set_logs sl
-    JOIN workout_exercises we ON sl.workoutExerciseId = we.id
-    JOIN exercises e ON we.exerciseId = e.id
-    JOIN session_logs s ON sl.sessionLogId = s.id
-    WHERE s.status = 'COMPLETED'
-      AND e.id = :exerciseId
-    GROUP BY e.id
-""")
-    suspend fun getExerciseDetailStats(exerciseId: Long): ExerciseDetailStats?
+        GROUP BY
+            sel.primaryMuscleHistoryKey,
+            sel.primaryMuscleNameSnapshot
+        """
+    )
+    fun getMuscleProgress(
+        startTime: Long,
+        endTime: Long
+    ): Flow<List<MuscleProgress>>
 
-    @Query("""
-    SELECT
-        s.sessionLogId AS sessionId,
-        sl.startedAt AS startedAt,
-        COALESCE(AVG(s.weightKg), 0) AS avgWeightKg,
-        AVG(s.repsCompleted) AS avgReps,
-        COALESCE(SUM(s.weightKg * s.repsCompleted), 0) AS totalVolume,
-        COALESCE(MAX(s.weightKg), 0) AS maxWeightKg,
-        MAX(s.repsCompleted) AS maxReps,
-        AVG(s.durationCompletedSec) AS avgDurationSec,
-        MAX(s.durationCompletedSec) AS maxDurationSec,
-        COUNT(s.id) AS setsCount
-    FROM set_logs s
-    INNER JOIN workout_exercises we
-        ON s.workoutExerciseId = we.id
-    INNER JOIN session_logs sl
-        ON s.sessionLogId = sl.id
-    WHERE we.exerciseId = :exerciseId
-      AND sl.status = 'COMPLETED'
-    GROUP BY s.sessionLogId
-    ORDER BY sl.startedAt ASC
-""")
+    @Query(
+        """
+        SELECT
+            sel.exerciseNameSnapshot AS exerciseName,
+            sel.orderIndex AS orderIndex,
+            sl.setNumber AS setNumber,
+            sl.repsCompleted AS repsCompleted,
+            sl.durationCompletedSec AS durationCompletedSec,
+            sl.weightKg AS weightKg
+
+        FROM set_logs sl
+
+        INNER JOIN session_exercise_logs sel
+            ON sl.sessionExerciseLogId = sel.id
+
+        WHERE sel.sessionLogId = :sessionId
+
+        ORDER BY
+            sel.orderIndex,
+            sl.setNumber
+        """
+    )
+    fun getSetDetailsForSession(
+        sessionId: Long
+    ): Flow<List<SetLogDetail>>
+
+    @Query(
+        """
+        SELECT
+            COALESCE(
+                sel.sourceExerciseId,
+                -1
+            ) AS exerciseId,
+
+            sel.exerciseNameSnapshot AS exerciseName,
+            sel.isBodyweightSnapshot AS isBodyweight,
+
+            s.id AS sessionLogId,
+            s.startedAt AS startedAt,
+
+            SUM(
+                CASE
+                    WHEN sel.isBodyweightSnapshot = 1
+                        THEN sl.repsCompleted
+
+                    ELSE
+                        sl.repsCompleted *
+                            sl.weightKg
+                END
+            ) AS sessionVolume
+
+        FROM set_logs sl
+
+        INNER JOIN session_exercise_logs sel
+            ON sl.sessionExerciseLogId = sel.id
+
+        INNER JOIN session_logs s
+            ON sel.sessionLogId = s.id
+
+        WHERE s.status = 'COMPLETED'
+          AND sel.trackingTypeSnapshot = 'REPS'
+
+        GROUP BY
+            sel.exerciseHistoryKey,
+            sel.sourceExerciseId,
+            sel.exerciseNameSnapshot,
+            sel.isBodyweightSnapshot,
+            s.id,
+            s.startedAt
+        """
+    )
+    suspend fun getAllExerciseSessionVolumes():
+            List<ExerciseSessionVolume>
+
+    @Query(
+        """
+        SELECT
+            sel.exerciseNameSnapshot AS exerciseName,
+            sel.isBodyweightSnapshot AS isBodyweight,
+            sel.trackingTypeSnapshot AS trackingType,
+
+            AVG(
+                sl.repsCompleted
+            ) AS averageReps,
+
+            MAX(
+                sl.repsCompleted
+            ) AS bestSingleSetReps,
+
+            AVG(
+                sl.durationCompletedSec
+            ) AS averageDurationSec,
+
+            MAX(
+                sl.durationCompletedSec
+            ) AS bestDurationSec,
+
+            COUNT(
+                DISTINCT s.id
+            ) AS sessionsLogged,
+
+            SUM(
+                sl.repsCompleted
+            ) AS totalReps,
+
+            MAX(
+                s.startedAt
+            ) AS lastPerformedAt
+
+        FROM set_logs sl
+
+        INNER JOIN session_exercise_logs sel
+            ON sl.sessionExerciseLogId = sel.id
+
+        INNER JOIN session_logs s
+            ON sel.sessionLogId = s.id
+
+        WHERE s.status = 'COMPLETED'
+          AND sel.sourceExerciseId = :exerciseId
+
+        GROUP BY
+            sel.sourceExerciseId
+        """
+    )
+    suspend fun getExerciseDetailStats(
+        exerciseId: Long
+    ): ExerciseDetailStats?
+
+    @Query(
+        """
+        SELECT
+            sel.sessionLogId AS sessionId,
+            sl.startedAt AS startedAt,
+
+            COALESCE(
+                AVG(s.weightKg),
+                0
+            ) AS avgWeightKg,
+
+            AVG(
+                s.repsCompleted
+            ) AS avgReps,
+
+            COALESCE(
+                SUM(
+                    s.weightKg *
+                        s.repsCompleted
+                ),
+                0
+            ) AS totalVolume,
+
+            COALESCE(
+                MAX(s.weightKg),
+                0
+            ) AS maxWeightKg,
+
+            MAX(
+                s.repsCompleted
+            ) AS maxReps,
+
+            AVG(
+                s.durationCompletedSec
+            ) AS avgDurationSec,
+
+            MAX(
+                s.durationCompletedSec
+            ) AS maxDurationSec,
+
+            COUNT(
+                s.id
+            ) AS setsCount
+
+        FROM set_logs s
+
+        INNER JOIN session_exercise_logs sel
+            ON s.sessionExerciseLogId = sel.id
+
+        INNER JOIN session_logs sl
+            ON sel.sessionLogId = sl.id
+
+        WHERE sel.sourceExerciseId = :exerciseId
+          AND sl.status = 'COMPLETED'
+
+        GROUP BY
+            sel.sessionLogId,
+            sl.startedAt
+
+        ORDER BY
+            sl.startedAt ASC
+        """
+    )
     suspend fun getExerciseSessionDataPoints(
         exerciseId: Long
     ): List<ExerciseSessionDataPoint>
 
-    @Query("""
-    SELECT
-        s.sessionLogId AS sessionLogId,
-        s.setNumber AS setNumber,
-        s.weightKg AS weightKg,
-        s.repsCompleted AS repsCompleted,
-        s.durationCompletedSec AS durationCompletedSec
-    FROM set_logs s
-    INNER JOIN workout_exercises we
-        ON s.workoutExerciseId = we.id
-    INNER JOIN session_logs sl
-        ON s.sessionLogId = sl.id
-    WHERE we.exerciseId = :exerciseId
-      AND sl.status = 'COMPLETED'
-    ORDER BY sl.startedAt ASC, s.setNumber ASC
-""")
+    @Query(
+        """
+        SELECT
+            sel.sessionLogId AS sessionLogId,
+            s.setNumber AS setNumber,
+            s.weightKg AS weightKg,
+            s.repsCompleted AS repsCompleted,
+            s.durationCompletedSec AS durationCompletedSec
+
+        FROM set_logs s
+
+        INNER JOIN session_exercise_logs sel
+            ON s.sessionExerciseLogId = sel.id
+
+        INNER JOIN session_logs sl
+            ON sel.sessionLogId = sl.id
+
+        WHERE sel.sourceExerciseId = :exerciseId
+          AND sl.status = 'COMPLETED'
+
+        ORDER BY
+            sl.startedAt ASC,
+            s.setNumber ASC
+        """
+    )
     suspend fun getExerciseSetDetails(
         exerciseId: Long
     ): List<ExerciseSetDetail>
 
-    @Query("""
-    SELECT
-        e.id AS exerciseId,
-        e.name AS exerciseName,
-        e.trackingType AS trackingType,
-        s.id AS sessionLogId,
-        s.startedAt AS startedAt,
-        COALESCE(
-            SUM(
-                CASE
-                    WHEN e.isBodyweight = 1
-                        THEN sl.repsCompleted
-                    ELSE
-                        sl.repsCompleted * COALESCE(sl.weightKg, 0)
-                END
-            ),
-            0
-        ) AS sessionVolume,
-        AVG(sl.durationCompletedSec) AS averageDurationSec
-    FROM set_logs sl
-    JOIN workout_exercises we
-        ON sl.workoutExerciseId = we.id
-    JOIN exercises e
-        ON we.exerciseId = e.id
-    JOIN session_logs s
-        ON sl.sessionLogId = s.id
-    WHERE s.status = 'COMPLETED'
-    GROUP BY
-        e.id,
-        e.name,
-        e.trackingType,
-        s.id,
-        s.startedAt
-""")
-    suspend fun getAllExerciseTrendSessions(): List<ExerciseTrendSession>
+    @Query(
+        """
+        SELECT
+            COALESCE(
+                sel.sourceExerciseId,
+                -1
+            ) AS exerciseId,
+
+            sel.exerciseNameSnapshot AS exerciseName,
+            sel.trackingTypeSnapshot AS trackingType,
+
+            s.id AS sessionLogId,
+            s.startedAt AS startedAt,
+
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN sel.isBodyweightSnapshot = 1
+                            THEN sl.repsCompleted
+
+                        ELSE
+                            sl.repsCompleted *
+                                COALESCE(
+                                    sl.weightKg,
+                                    0
+                                )
+                    END
+                ),
+                0
+            ) AS sessionVolume,
+
+            AVG(
+                sl.durationCompletedSec
+            ) AS averageDurationSec
+
+        FROM set_logs sl
+
+        INNER JOIN session_exercise_logs sel
+            ON sl.sessionExerciseLogId = sel.id
+
+        INNER JOIN session_logs s
+            ON sel.sessionLogId = s.id
+
+        WHERE s.status = 'COMPLETED'
+
+        GROUP BY
+            sel.exerciseHistoryKey,
+            sel.sourceExerciseId,
+            sel.exerciseNameSnapshot,
+            sel.trackingTypeSnapshot,
+            s.id,
+            s.startedAt
+        """
+    )
+    suspend fun getAllExerciseTrendSessions():
+            List<ExerciseTrendSession>
 }

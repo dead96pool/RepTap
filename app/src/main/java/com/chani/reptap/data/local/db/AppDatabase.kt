@@ -16,10 +16,11 @@ import com.chani.reptap.data.local.entity.*
         WorkoutDay::class,
         WorkoutExercise::class,
         SessionLog::class,
+        SessionExerciseLog::class,
         SetLog::class,
         CycleState::class
     ],
-    version = 12,
+    version = 14,
     exportSchema = false
 )
 
@@ -31,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutDayDao(): WorkoutDayDao
     abstract fun workoutExerciseDao(): WorkoutExerciseDao
     abstract fun sessionLogDao(): SessionLogDao
+    abstract fun sessionExerciseLogDao(): SessionExerciseLogDao
     abstract fun setLogDao(): SetLogDao
     abstract fun cycleStateDao(): CycleStateDao
 

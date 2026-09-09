@@ -44,6 +44,19 @@ class ActiveWorkoutViewModel(
     val uiState: StateFlow<ActiveWorkoutUiState> = _uiState.asStateFlow()
 
     private var sessionId: Long = -1L
+
+    /*
+     * Active Workout still displays WorkoutExercise-based UI
+     * models for now.
+     *
+     * This map connects each displayed WorkoutExercise to the
+     * immutable SessionExerciseLog created when this session
+     * started.
+     */
+    private var sessionExerciseLogIdsByWorkoutExerciseId:
+            Map<Long, Long> =
+        emptyMap()
+
     private var timerJob: kotlinx.coroutines.Job? = null
     private var timedSetTimerJob: kotlinx.coroutines.Job? = null
 
@@ -67,9 +80,21 @@ class ActiveWorkoutViewModel(
     }
 
     private suspend fun startSessionIfNeeded() {
-        if (sessionId == -1L) {
-            sessionId = workoutRepository.startSession(dayId)
+        if (sessionId != -1L) {
+            return
         }
+
+        val startedSession =
+            workoutRepository
+                .startSession(dayId)
+                ?: return
+
+        sessionId =
+            startedSession.sessionId
+
+        sessionExerciseLogIdsByWorkoutExerciseId =
+            startedSession
+                .sessionExerciseLogIdsByWorkoutExerciseId
     }
 
     fun tapRep() {
@@ -137,6 +162,12 @@ class ActiveWorkoutViewModel(
         val state = _uiState.value
         val exercise = state.currentExercise ?: return
 
+        val sessionExerciseLogId =
+            sessionExerciseLogIdsByWorkoutExerciseId[
+                exercise.id
+            ]
+                ?: return
+
         if (state.phase != SetPhase.COUNTING_REPS) return
 
         val isTimedExercise =
@@ -166,17 +197,31 @@ class ActiveWorkoutViewModel(
         viewModelScope.launch {
             workoutRepository.logSet(
                 SetLog(
-                    sessionLogId = sessionId,
-                    workoutExerciseId = exercise.id,
-                    setNumber = state.currentSetNumber,
+                    sessionExerciseLogId =
+                        sessionExerciseLogId,
+
+                    setNumber =
+                        state.currentSetNumber,
+
                     repsCompleted =
-                        if (isTimedExercise) 0
-                        else state.repsTapped,
+                        if (isTimedExercise) {
+                            0
+                        } else {
+                            state.repsTapped
+                        },
+
                     durationCompletedSec =
-                        if (isTimedExercise) state.timedSecondsElapsed
-                        else null,
-                    weightKg = state.weightKg,
-                    timestamp = System.currentTimeMillis()
+                        if (isTimedExercise) {
+                            state.timedSecondsElapsed
+                        } else {
+                            null
+                        },
+
+                    weightKg =
+                        state.weightKg,
+
+                    timestamp =
+                        System.currentTimeMillis()
                 )
             )
 

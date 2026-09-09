@@ -3,11 +3,25 @@ package com.chani.reptap.data.repository
 import com.chani.reptap.data.local.db.AppDatabase
 import com.chani.reptap.data.local.entity.*
 import androidx.room.withTransaction
-import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
+data class StartedWorkoutSession(
+    val sessionId: Long,
+
+    /*
+     * Maps the mutable WorkoutExercise row being displayed
+     * by Active Workout to the immutable historical
+     * SessionExerciseLog created for this session.
+     *
+     * This mapping exists only for the active session.
+     * We do not store WorkoutExercise IDs in historical
+     * SessionExerciseLog rows.
+     */
+    val sessionExerciseLogIdsByWorkoutExerciseId:
+    Map<Long, Long>
+)
 
 class WorkoutRepository(private val db: AppDatabase) {
 
@@ -878,9 +892,11 @@ class WorkoutRepository(private val db: AppDatabase) {
                     return
                 }
 
-                val exercises =
-                    getExercisesForDayWithNames(workoutDay.id)
-                        .first()
+                val snapshotSources =
+                    db.workoutExerciseDao()
+                        .getSnapshotSourcesForDay(
+                            workoutDay.id
+                        )
 
                 /*
                  * Vary the workout start time so History contains
@@ -944,7 +960,83 @@ class WorkoutRepository(private val db: AppDatabase) {
                         )
                     )
 
-                exercises.forEachIndexed { exerciseIndex, exercise ->
+                val sessionExerciseLogs =
+                    snapshotSources.map { source ->
+
+                        SessionExerciseLog(
+                            sessionLogId =
+                                sessionId,
+
+                            sourceExerciseId =
+                                source.sourceExerciseId,
+
+                            exerciseHistoryKey =
+                                source.exerciseHistoryKey,
+
+                            exerciseNameSnapshot =
+                                source.exerciseName,
+
+                            trackingTypeSnapshot =
+                                source.trackingType,
+
+                            isBodyweightSnapshot =
+                                source.isBodyweight,
+
+                            isPerSideSnapshot =
+                                source.isPerSide,
+
+                            sourcePrimaryMuscleId =
+                                source.sourcePrimaryMuscleId,
+
+                            primaryMuscleHistoryKey =
+                                source.primaryMuscleHistoryKey,
+
+                            primaryMuscleNameSnapshot =
+                                source.primaryMuscleName,
+
+                            orderIndex =
+                                source.orderIndex,
+
+                            targetSets =
+                                source.targetSets,
+
+                            targetReps =
+                                source.targetReps,
+
+                            targetDurationSec =
+                                source.targetDurationSec,
+
+                            defaultWeightKg =
+                                source.defaultWeightKg,
+
+                            restBetweenSetsSec =
+                                source.restBetweenSetsSec,
+
+                            restBeforeNextSec =
+                                source.restBeforeNextSec
+                        )
+                    }
+
+                val sessionExerciseLogIds =
+                    db.sessionExerciseLogDao()
+                        .insertAll(
+                            sessionExerciseLogs
+                        )
+
+                check(
+                    sessionExerciseLogIds.size ==
+                            snapshotSources.size
+                ) {
+                    "Unable to create fake session exercise snapshots"
+                }
+
+                snapshotSources.forEachIndexed {
+                        exerciseIndex,
+                        exercise ->
+                    val sessionExerciseLogId =
+                        sessionExerciseLogIds[
+                            exerciseIndex
+                        ]
                     /*
                      * Divide rep exercises into three deterministic
                      * trend groups:
@@ -997,8 +1089,8 @@ class WorkoutRepository(private val db: AppDatabase) {
 
                             setDao.insert(
                                 SetLog(
-                                    sessionLogId = sessionId,
-                                    workoutExerciseId = exercise.id,
+                                    sessionExerciseLogId =
+                                        sessionExerciseLogId,
                                     setNumber = setNumber,
                                     repsCompleted = 0,
                                     durationCompletedSec =
@@ -1092,8 +1184,8 @@ class WorkoutRepository(private val db: AppDatabase) {
 
                             setDao.insert(
                                 SetLog(
-                                    sessionLogId = sessionId,
-                                    workoutExerciseId = exercise.id,
+                                    sessionExerciseLogId =
+                                        sessionExerciseLogId,
                                     setNumber = setNumber,
                                     repsCompleted = completedReps,
                                     durationCompletedSec = null,
@@ -1142,22 +1234,144 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun startSession(
         dayId: Long
-    ): Long {
-        val workoutDay =
-            db.workoutDayDao()
-                .getById(dayId)
-                ?: return -1L
+    ): StartedWorkoutSession? {
+        return db.withTransaction {
 
-        return db.sessionLogDao().insert(
-            SessionLog(
-                workoutDayId =
-                    dayId,
-                workoutDayNameSnapshot =
-                    workoutDay.name,
-                startedAt =
-                    System.currentTimeMillis()
+            val workoutDay =
+                db.workoutDayDao()
+                    .getById(dayId)
+                    ?: return@withTransaction null
+
+            val snapshotSources =
+                db.workoutExerciseDao()
+                    .getSnapshotSourcesForDay(
+                        dayId
+                    )
+
+            /*
+             * Home already prevents starting an empty draft.
+             *
+             * Keep the repository defensive as well so an empty
+             * workout can never produce an invalid active
+             * historical session through another call path.
+             */
+            if (snapshotSources.isEmpty()) {
+                return@withTransaction null
+            }
+
+            val startedAt =
+                System.currentTimeMillis()
+
+            val sessionId =
+                db.sessionLogDao()
+                    .insert(
+                        SessionLog(
+                            workoutDayId =
+                                dayId,
+                            workoutDayNameSnapshot =
+                                workoutDay.name,
+                            startedAt =
+                                startedAt
+                        )
+                    )
+
+            val sessionExerciseLogs =
+                snapshotSources.map { source ->
+
+                    SessionExerciseLog(
+                        sessionLogId =
+                            sessionId,
+
+                        sourceExerciseId =
+                            source.sourceExerciseId,
+
+                        exerciseHistoryKey =
+                            source.exerciseHistoryKey,
+
+                        exerciseNameSnapshot =
+                            source.exerciseName,
+
+                        trackingTypeSnapshot =
+                            source.trackingType,
+
+                        isBodyweightSnapshot =
+                            source.isBodyweight,
+
+                        isPerSideSnapshot =
+                            source.isPerSide,
+
+                        sourcePrimaryMuscleId =
+                            source.sourcePrimaryMuscleId,
+
+                        primaryMuscleHistoryKey =
+                            source.primaryMuscleHistoryKey,
+
+                        primaryMuscleNameSnapshot =
+                            source.primaryMuscleName,
+
+                        orderIndex =
+                            source.orderIndex,
+
+                        targetSets =
+                            source.targetSets,
+
+                        targetReps =
+                            source.targetReps,
+
+                        targetDurationSec =
+                            source.targetDurationSec,
+
+                        defaultWeightKg =
+                            source.defaultWeightKg,
+
+                        restBetweenSetsSec =
+                            source.restBetweenSetsSec,
+
+                        restBeforeNextSec =
+                            source.restBeforeNextSec
+                    )
+                }
+
+            /*
+             * Room returns the generated IDs in the same order
+             * as the supplied SessionExerciseLog list.
+             */
+            val sessionExerciseLogIds =
+                db.sessionExerciseLogDao()
+                    .insertAll(
+                        sessionExerciseLogs
+                    )
+
+            /*
+             * Defensively refuse an incomplete mapping.
+             * Because everything is inside this transaction,
+             * throwing here rolls back the whole session.
+             */
+            check(
+                sessionExerciseLogIds.size ==
+                        snapshotSources.size
+            ) {
+                "Unable to create complete session exercise snapshot"
+            }
+
+            val snapshotIdMap =
+                snapshotSources
+                    .map {
+                        it.workoutExerciseId
+                    }
+                    .zip(
+                        sessionExerciseLogIds
+                    )
+                    .toMap()
+
+            StartedWorkoutSession(
+                sessionId =
+                    sessionId,
+
+                sessionExerciseLogIdsByWorkoutExerciseId =
+                    snapshotIdMap
             )
-        )
+        }
     }
 
     suspend fun logSet(setLog: SetLog) {

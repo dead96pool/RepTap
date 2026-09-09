@@ -19,6 +19,32 @@ data class WorkoutExerciseWithName(
     val trackingType: com.chani.reptap.data.local.entity.ExerciseTrackingType
 )
 
+data class WorkoutExerciseSnapshotSource(
+    val workoutExerciseId: Long,
+
+    val sourceExerciseId: Long,
+    val exerciseHistoryKey: String,
+    val exerciseName: String,
+
+    val trackingType:
+    com.chani.reptap.data.local.entity.ExerciseTrackingType,
+
+    val isBodyweight: Boolean,
+    val isPerSide: Boolean,
+
+    val sourcePrimaryMuscleId: Long,
+    val primaryMuscleHistoryKey: String,
+    val primaryMuscleName: String,
+
+    val orderIndex: Int,
+    val targetSets: Int,
+    val targetReps: Int,
+    val targetDurationSec: Int?,
+    val defaultWeightKg: Float?,
+    val restBetweenSetsSec: Int,
+    val restBeforeNextSec: Int
+)
+
 @Dao
 interface WorkoutExerciseDao {
     @Query("""
@@ -40,6 +66,48 @@ interface WorkoutExerciseDao {
     suspend fun getForDayOnce(
         dayId: Long
     ): List<WorkoutExercise>
+
+    @Query(
+        """
+    SELECT
+        we.id AS workoutExerciseId,
+
+        e.id AS sourceExerciseId,
+        e.historyKey AS exerciseHistoryKey,
+        e.name AS exerciseName,
+        e.trackingType AS trackingType,
+        e.isBodyweight AS isBodyweight,
+        e.isPerSide AS isPerSide,
+
+        m.id AS sourcePrimaryMuscleId,
+        m.historyKey AS primaryMuscleHistoryKey,
+        m.name AS primaryMuscleName,
+
+        we.orderIndex AS orderIndex,
+        we.targetSets AS targetSets,
+        we.targetReps AS targetReps,
+        we.targetDurationSec AS targetDurationSec,
+        we.defaultWeightKg AS defaultWeightKg,
+        we.restBetweenSetsSec AS restBetweenSetsSec,
+        we.restBeforeNextSec AS restBeforeNextSec
+
+    FROM workout_exercises we
+
+    INNER JOIN exercises e
+        ON we.exerciseId = e.id
+
+    INNER JOIN muscle_groups m
+        ON e.primaryMuscleId = m.id
+
+    WHERE we.workoutDayId = :dayId
+      AND we.isActive = 1
+
+    ORDER BY we.orderIndex
+    """
+    )
+    suspend fun getSnapshotSourcesForDay(
+        dayId: Long
+    ): List<WorkoutExerciseSnapshotSource>
 
     @Query("SELECT COUNT(*) FROM workout_exercises")
     suspend fun count(): Int

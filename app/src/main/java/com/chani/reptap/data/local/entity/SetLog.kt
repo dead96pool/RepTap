@@ -9,26 +9,32 @@ import androidx.room.PrimaryKey
     tableName = "set_logs",
     foreignKeys = [
         ForeignKey(
-            entity = SessionLog::class,
+            entity = SessionExerciseLog::class,
             parentColumns = ["id"],
-            childColumns = ["sessionLogId"],
+            childColumns = ["sessionExerciseLogId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = WorkoutExercise::class,
-            parentColumns = ["id"],
-            childColumns = ["workoutExerciseId"],
-            onDelete = ForeignKey.RESTRICT
         )
     ],
-    indices = [Index("sessionLogId"), Index("workoutExerciseId")]
+    indices = [
+        Index("sessionExerciseLogId")
+    ]
 )
-
 data class SetLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val sessionLogId: Long,
-    val workoutExerciseId: Long,
+
+    /*
+     * Every performed set belongs to the immutable
+     * SessionExerciseLog captured when this workout began.
+     *
+     * The parent SessionLog is obtained through:
+     *
+     * SetLog
+     *   -> SessionExerciseLog
+     *   -> SessionLog
+     */
+    val sessionExerciseLogId: Long,
+
     val setNumber: Int,
     val repsCompleted: Int,
     val durationCompletedSec: Int? = null,
