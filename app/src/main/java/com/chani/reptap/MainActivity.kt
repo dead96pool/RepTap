@@ -217,6 +217,13 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(
                                         "workout_builder/$newDayId"
                                     )
+                                },
+
+                                onWorkoutDeleted = {
+                                    navController.popBackStack(
+                                        route = "home",
+                                        inclusive = false
+                                    )
                                 }
                             )
                         }

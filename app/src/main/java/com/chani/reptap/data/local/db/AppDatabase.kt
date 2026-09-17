@@ -20,7 +20,7 @@ import com.chani.reptap.data.local.entity.*
         SetLog::class,
         CycleState::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 

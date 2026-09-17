@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -84,20 +85,64 @@ fun AllExercisesScreen(
 }
 
 @Composable
-private fun ExerciseListRow(item: ExerciseListItem, onClick: () -> Unit) {
+private fun ExerciseListRow(
+    item: ExerciseListItem,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(
+                onClick = onClick
+            )
+            .padding(
+                horizontal = 12.dp,
+                vertical = 14.dp
+            ),
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
-        Text(item.name, style = MaterialTheme.typography.bodyMedium)
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+            Text(
+                text =
+                    item.name,
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyMedium
+            )
+
+            if (item.isHistoricalOnly) {
+                Text(
+                    text =
+                        "Previously used",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant
+                )
+            }
+        }
+
         Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            imageVector =
+                Icons.AutoMirrored.Filled
+                    .KeyboardArrowRight,
+            contentDescription =
+                null,
+            tint =
+                MaterialTheme
+                    .colorScheme
+                    .onSurfaceVariant
         )
     }
 }

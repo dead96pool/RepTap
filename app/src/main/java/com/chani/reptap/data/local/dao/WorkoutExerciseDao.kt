@@ -50,7 +50,6 @@ interface WorkoutExerciseDao {
     @Query("""
     SELECT * FROM workout_exercises
     WHERE workoutDayId = :dayId
-      AND isActive = 1
     ORDER BY orderIndex
 """)
     fun getForDay(
@@ -60,7 +59,6 @@ interface WorkoutExerciseDao {
     @Query("""
     SELECT * FROM workout_exercises
     WHERE workoutDayId = :dayId
-      AND isActive = 1
     ORDER BY orderIndex
 """)
     suspend fun getForDayOnce(
@@ -100,7 +98,6 @@ interface WorkoutExerciseDao {
         ON e.primaryMuscleId = m.id
 
     WHERE we.workoutDayId = :dayId
-      AND we.isActive = 1
 
     ORDER BY we.orderIndex
     """
@@ -109,8 +106,6 @@ interface WorkoutExerciseDao {
         dayId: Long
     ): List<WorkoutExerciseSnapshotSource>
 
-    @Query("SELECT COUNT(*) FROM workout_exercises")
-    suspend fun count(): Int
 
     @Query("""
     SELECT we.id AS id,
@@ -128,20 +123,20 @@ interface WorkoutExerciseDao {
     FROM workout_exercises we
     JOIN exercises e ON we.exerciseId = e.id
     WHERE we.workoutDayId = :dayId
-      AND we.isActive = 1
     ORDER BY we.orderIndex
 """)
     fun getForDayWithNames(
         dayId: Long
     ): Flow<List<WorkoutExerciseWithName>>
 
-    @Query("""
+    @Query(
+        """
     SELECT COUNT(*)
     FROM workout_exercises
     WHERE workoutDayId = :dayId
-      AND isActive = 1
-""")
-    suspend fun getActiveCountForDay(
+    """
+    )
+    suspend fun getCountForDay(
         dayId: Long
     ): Int
 
@@ -176,27 +171,16 @@ interface WorkoutExerciseDao {
         id: Long
     ): WorkoutExercise?
 
-    @Query("""
-    SELECT * FROM workout_exercises
+    @Query(
+        """
+    SELECT *
+    FROM workout_exercises
     WHERE workoutDayId = :dayId
       AND exerciseId = :exerciseId
-      AND isActive = 1
     LIMIT 1
-""")
-    suspend fun getActiveForExercise(
-        dayId: Long,
-        exerciseId: Long
-    ): WorkoutExercise?
-
-    @Query("""
-    SELECT * FROM workout_exercises
-    WHERE workoutDayId = :dayId
-      AND exerciseId = :exerciseId
-      AND isActive = 0
-    ORDER BY id DESC
-    LIMIT 1
-""")
-    suspend fun getInactiveForExercise(
+    """
+    )
+    suspend fun getForExercise(
         dayId: Long,
         exerciseId: Long
     ): WorkoutExercise?

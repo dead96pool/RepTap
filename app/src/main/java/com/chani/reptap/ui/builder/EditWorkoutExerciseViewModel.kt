@@ -84,7 +84,7 @@ class EditWorkoutExerciseViewModel(
                         if (success) {
                             null
                         } else {
-                            "A workout must contain at least one exercise"
+                            "Unable to remove exercise"
                         }
                 )
         }

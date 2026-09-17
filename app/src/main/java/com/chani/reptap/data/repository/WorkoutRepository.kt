@@ -23,9 +23,21 @@ data class StartedWorkoutSession(
     Map<Long, Long>
 )
 
+enum class DeleteWorkoutResult {
+    SUCCESS,
+    NOT_FOUND,
+    RECOVERY_DAY,
+    LAST_WORKOUT
+}
+
 class WorkoutRepository(private val db: AppDatabase) {
 
     val exercises = db.exerciseDao().getAll()
+
+    val historicalExerciseIdentities =
+        db.sessionExerciseLogDao()
+            .observeHistoricalExerciseIdentities()
+
     val workoutDays = db.workoutDayDao().getAll()
 
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
@@ -123,37 +135,23 @@ class WorkoutRepository(private val db: AppDatabase) {
                 )
                     ?: return@withTransaction false
 
-            if (!current.isActive) {
-                return@withTransaction true
-            }
-
             /*
-             * For now a workout must retain at least one
-             * active exercise.
-             */
-            val activeCount =
-                dao.getActiveCountForDay(
-                    current.workoutDayId
-                )
-
-            if (activeCount <= 1) {
-                return@withTransaction false
-            }
-
-            /*
-             * Archive instead of physically deleting.
+             * Historical SetLogs no longer reference
+             * WorkoutExercise.
              *
-             * Historical SetLogs can therefore continue
-             * referencing this WorkoutExercise row.
+             * It is therefore safe to physically remove this
+             * current-program row.
              */
-            dao.update(
-                current.copy(
-                    isActive = false
-                )
+            dao.delete(
+                current
             )
 
             /*
-             * Close any orderIndex gaps created by removal.
+             * Copy every WorkoutExercise currently belonging to the
+             * source workout.
+             *
+             * id = 0 creates completely independent rows for the
+             * duplicated workout.
              */
             val remaining =
                 dao.getForDayOnce(
@@ -164,16 +162,17 @@ class WorkoutRepository(private val db: AppDatabase) {
                     index,
                     workoutExercise ->
 
-                val newOrder =
+                val newOrderIndex =
                     index + 1
 
                 if (
                     workoutExercise.orderIndex !=
-                    newOrder
+                    newOrderIndex
                 ) {
                     dao.update(
                         workoutExercise.copy(
-                            orderIndex = newOrder
+                            orderIndex =
+                                newOrderIndex
                         )
                     )
                 }
@@ -198,71 +197,57 @@ class WorkoutRepository(private val db: AppDatabase) {
                 db.workoutExerciseDao()
 
             /*
-             * Prevent the same exercise from appearing twice
-             * in the active workout.
+             * Prevent the same Exercise from appearing twice
+             * in the same current workout.
              */
-            val alreadyActive =
-                dao.getActiveForExercise(
+            val alreadyPresent =
+                dao.getForExercise(
                     dayId = dayId,
                     exerciseId = exerciseId
                 )
 
-            if (alreadyActive != null) {
+            if (alreadyPresent != null) {
                 return@withTransaction false
             }
 
             val nextOrderIndex =
-                dao.getActiveCountForDay(dayId) + 1
+                dao.getCountForDay(
+                    dayId
+                ) + 1
 
-            /*
-             * Prefer reactivating an archived row. This keeps
-             * historical SetLog foreign-key references intact.
-             */
-            val archived =
-                dao.getInactiveForExercise(
-                    dayId = dayId,
-                    exerciseId = exerciseId
-                )
-
-            if (archived != null) {
-                dao.update(
-                    archived.copy(
-                        orderIndex = nextOrderIndex,
-                        targetSets = targetSets,
-                        targetReps = targetReps,
-                        targetDurationSec =
-                            targetDurationSec,
-                        restBetweenSetsSec =
-                            restBetweenSetsSec,
-                        restBeforeNextSec =
-                            restBeforeNextSec,
-                        defaultWeightKg =
-                            defaultWeightKg,
-                        isActive = true
-                    )
-                )
-            } else {
+            val newId =
                 dao.insert(
                     WorkoutExercise(
-                        workoutDayId = dayId,
-                        exerciseId = exerciseId,
-                        orderIndex = nextOrderIndex,
-                        targetSets = targetSets,
-                        targetReps = targetReps,
+                        workoutDayId =
+                            dayId,
+
+                        exerciseId =
+                            exerciseId,
+
+                        orderIndex =
+                            nextOrderIndex,
+
+                        targetSets =
+                            targetSets,
+
+                        targetReps =
+                            targetReps,
+
                         targetDurationSec =
                             targetDurationSec,
+
                         restBetweenSetsSec =
                             restBetweenSetsSec,
+
                         restBeforeNextSec =
                             restBeforeNextSec,
+
                         defaultWeightKg =
-                            defaultWeightKg,
-                        isActive = true
+                            defaultWeightKg
                     )
                 )
-            }
 
-            true
+            newId > 0L
         }
     }
 
@@ -451,8 +436,7 @@ class WorkoutRepository(private val db: AppDatabase) {
                     sourceExercise.copy(
                         id = 0L,
                         workoutDayId =
-                            newDayId,
-                        isActive = true
+                            newDayId
                     )
                 )
             }
@@ -517,13 +501,334 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun seedIfEmpty() {
-        val weDao = db.workoutExerciseDao()
-        if (weDao.count() > 0) return // already seeded, skip
+    suspend fun deleteWorkout(
+        dayId: Long
+    ): DeleteWorkoutResult {
+        return db.withTransaction {
+            val dayDao =
+                db.workoutDayDao()
 
-        val muscleDao = db.muscleGroupDao()
-        val exerciseDao = db.exerciseDao()
-        val dayDao = db.workoutDayDao()
+            val workoutExerciseDao =
+                db.workoutExerciseDao()
+
+            val cycleStateDao =
+                db.cycleStateDao()
+
+            val targetDay =
+                dayDao.getById(
+                    dayId
+                )
+                    ?: return@withTransaction DeleteWorkoutResult.NOT_FOUND
+
+            /*
+             * Recovery slots are part of the cycle definition,
+             * not editable workouts.
+             *
+             * Workout Builder should never normally call this
+             * for one, but enforce the rule in the repository
+             * as well.
+             */
+            if (targetDay.isRecovery) {
+                return@withTransaction DeleteWorkoutResult.RECOVERY_DAY
+            }
+
+            val daysBeforeDeletion =
+                dayDao.getAllOnce()
+
+            val workoutCount =
+                daysBeforeDeletion.count {
+                    !it.isRecovery
+                }
+
+            /*
+             * RepTap must retain at least one editable workout.
+             *
+             * That remaining workout is allowed to contain zero
+             * exercises and therefore behave as a draft.
+             */
+            if (workoutCount <= 1) {
+                return@withTransaction DeleteWorkoutResult.LAST_WORKOUT
+            }
+
+            val cycleState =
+                cycleStateDao.getOnce()
+
+            /*
+             * Remember the logical current WorkoutDay by ID,
+             * rather than relying only on its mutable slot
+             * number.
+             *
+             * This lets us preserve the same current workout
+             * when another earlier slot is deleted.
+             */
+            val currentDayIdBeforeDeletion =
+                cycleState
+                    ?.let { state ->
+
+                        daysBeforeDeletion
+                            .firstOrNull {
+                                it.slotNumber ==
+                                        state.currentSlot
+                            }
+                            ?.id
+                    }
+
+            val deletedSlot =
+                targetDay.slotNumber
+
+            /*
+             * WorkoutDay -> WorkoutExercise has ON DELETE
+             * CASCADE, so deleting this day also deletes its
+             * current workout configuration.
+             *
+             * Historical SessionLog / SessionExerciseLog /
+             * SetLog rows have no destructive dependency on
+             * WorkoutDay and therefore survive.
+             */
+            dayDao.delete(
+                targetDay
+            )
+
+            /*
+             * Close the cycle-slot gap.
+             *
+             * Example:
+             *
+             * 1, 2, 3, 4, 5
+             * delete slot 3
+             *        ↓
+             * 1, 2, 3, 4
+             */
+            val remainingDays =
+                dayDao.getAllOnce()
+
+            remainingDays
+                .forEachIndexed {
+                        index,
+                        day ->
+
+                    val newSlot =
+                        index + 1
+
+                    if (
+                        day.slotNumber !=
+                        newSlot
+                    ) {
+                        dayDao.update(
+                            day.copy(
+                                slotNumber =
+                                    newSlot
+                            )
+                        )
+                    }
+                }
+
+            val renumberedDays =
+                dayDao.getAllOnce()
+
+            /*
+             * Repair CycleState if one currently exists.
+             */
+            if (cycleState != null) {
+
+                /*
+                 * If the selected logical WorkoutDay survived,
+                 * simply follow it to its newly renumbered slot.
+                 */
+                val survivingCurrentDay =
+                    currentDayIdBeforeDeletion
+                        ?.takeIf {
+                            it != targetDay.id
+                        }
+                        ?.let {
+                                currentDayId ->
+
+                            renumberedDays
+                                .firstOrNull {
+                                    it.id ==
+                                            currentDayId
+                                }
+                        }
+
+                if (survivingCurrentDay != null) {
+                    cycleStateDao.upsert(
+                        cycleState.copy(
+                            currentSlot =
+                                survivingCurrentDay
+                                    .slotNumber
+                        )
+                    )
+                } else {
+
+                    /*
+                     * The currently selected workout was deleted,
+                     * or CycleState was already pointing at an
+                     * invalid slot.
+                     *
+                     * Start scanning from the position formerly
+                     * occupied by the deleted workout.
+                     */
+                    val startIndex =
+                        renumberedDays
+                            .indexOfFirst {
+                                it.slotNumber >=
+                                        deletedSlot
+                            }
+                            .let {
+                                if (it >= 0) {
+                                    it
+                                } else {
+                                    0
+                                }
+                            }
+
+                    var recoveryDaysAhead =
+                        0L
+
+                    var replacementDay:
+                            WorkoutDay? =
+                        null
+
+                    /*
+                     * Drafts are skipped without consuming a
+                     * calendar day.
+                     *
+                     * Recovery days are skipped as destinations
+                     * but DO consume calendar days.
+                     *
+                     * Unlike completing a workout, deleting the
+                     * current workout may promote an immediately
+                     * following usable workout onto the SAME
+                     * scheduled date.
+                     */
+                    for (
+                    offset in
+                    renumberedDays.indices
+                    ) {
+                        val index =
+                            (
+                                    startIndex +
+                                            offset
+                                    ) %
+                                    renumberedDays.size
+
+                        val candidate =
+                            renumberedDays[
+                                index
+                            ]
+
+                        if (candidate.isRecovery) {
+                            recoveryDaysAhead +=
+                                1L
+
+                            continue
+                        }
+
+                        val exerciseCount =
+                            workoutExerciseDao
+                                .getCountForDay(
+                                    candidate.id
+                                )
+
+                        /*
+                         * Empty drafts do not participate in
+                         * automatic scheduling and consume no
+                         * calendar day.
+                         */
+                        if (exerciseCount == 0) {
+                            continue
+                        }
+
+                        replacementDay =
+                            candidate
+
+                        break
+                    }
+
+                    /*
+                     * It is possible that every remaining workout
+                     * is currently an empty draft.
+                     *
+                     * In that case select a draft anyway so Home
+                     * still points at a valid editable workout.
+                     */
+                    val finalReplacement =
+                        replacementDay
+                            ?: renumberedDays
+                                .first {
+                                    !it.isRecovery
+                                }
+
+                    val todayEpochDay =
+                        LocalDate.now()
+                            .toEpochDay()
+
+                    val baseScheduledDay =
+                        maxOf(
+                            cycleState
+                                .scheduledEpochDay,
+                            todayEpochDay
+                        )
+
+                    val adjustedScheduledDay =
+                        if (
+                            replacementDay != null
+                        ) {
+                            baseScheduledDay +
+                                    recoveryDaysAhead
+                        } else {
+                            /*
+                             * With only drafts remaining there is
+                             * no meaningful automatic next-workout
+                             * date yet.
+                             */
+                            baseScheduledDay
+                        }
+
+                    cycleStateDao.upsert(
+                        cycleState.copy(
+                            currentSlot =
+                                finalReplacement
+                                    .slotNumber,
+
+                            scheduledEpochDay =
+                                adjustedScheduledDay
+                        )
+                    )
+                }
+            }
+
+            DeleteWorkoutResult.SUCCESS
+        }
+    }
+
+    suspend fun seedIfEmpty() {
+        val dayDao =
+            db.workoutDayDao()
+
+        /*
+         * WorkoutExercise count is NOT a valid initialization
+         * signal anymore because empty/draft workouts are a
+         * legitimate user-created state.
+         *
+         * The presence of the seeded workout cycle is our
+         * development initialization check instead.
+         */
+        if (
+            dayDao.getAllOnce()
+                .isNotEmpty()
+        ) {
+            return
+        }
+
+        val weDao =
+            db.workoutExerciseDao()
+
+        val muscleDao =
+            db.muscleGroupDao()
+
+        val exerciseDao =
+            db.exerciseDao()
 
         data class MuscleSeed(
             val historyKey: String,

@@ -37,7 +37,8 @@ fun WorkoutBuilderScreen(
         (WorkoutExerciseWithName) -> Unit,
     onAddExercise: () -> Unit,
     onWorkoutDuplicated:
-        (Long) -> Unit
+        (Long) -> Unit,
+    onWorkoutDeleted: () -> Unit
 ) {
     val workoutDay by
     viewModel.workoutDay
@@ -61,6 +62,14 @@ fun WorkoutBuilderScreen(
 
     val duplicateError by
     viewModel.duplicateError
+        .collectAsStateWithLifecycle()
+
+    val isDeleting by
+    viewModel.isDeleting
+        .collectAsStateWithLifecycle()
+
+    val deleteError by
+    viewModel.deleteError
         .collectAsStateWithLifecycle()
 
     val listState =
@@ -119,6 +128,11 @@ fun WorkoutBuilderScreen(
 
     var duplicateName by remember {
         mutableStateOf("")
+    }
+
+    var showDeleteDialog by
+    remember {
+        mutableStateOf(false)
     }
 
     LaunchedEffect(
@@ -248,6 +262,27 @@ fun WorkoutBuilderScreen(
                                             .clearDuplicateError()
 
                                         showDuplicateDialog =
+                                            true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete workout",
+                                            color =
+                                                MaterialTheme
+                                                    .colorScheme
+                                                    .error
+                                        )
+                                    },
+                                    onClick = {
+                                        showWorkoutMenu =
+                                            false
+
+                                        viewModel
+                                            .clearDeleteError()
+
+                                        showDeleteDialog =
                                             true
                                     }
                                 )
@@ -916,6 +951,137 @@ fun WorkoutBuilderScreen(
                         showRenameDialog =
                             false
                     }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDeleting) {
+                    showDeleteDialog =
+                        false
+
+                    viewModel
+                        .clearDeleteError()
+                }
+            },
+
+            title = {
+                Text(
+                    "Delete workout?"
+                )
+            },
+
+            text = {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+                    Text(
+                        "Delete ${workoutDay?.name ?: "this workout"} " +
+                                "from your current training cycle?"
+                    )
+
+                    Text(
+                        "Completed workout history and progress " +
+                                "will be preserved.",
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant
+                    )
+
+                    deleteError?.let {
+                            error ->
+
+                        Text(
+                            text =
+                                error,
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+                        )
+                    }
+                }
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            val success =
+                                viewModel
+                                    .deleteWorkout()
+
+                            if (success) {
+                                showDeleteDialog =
+                                    false
+
+                                onWorkoutDeleted()
+                            }
+                        }
+                    },
+
+                    enabled =
+                        !isDeleting,
+
+                    colors =
+                        ButtonDefaults
+                            .textButtonColors(
+                                contentColor =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .error
+                            )
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(
+                                    18.dp
+                                ),
+                            strokeWidth =
+                                2.dp
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    8.dp
+                                )
+                        )
+                    }
+
+                    Text("Delete")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog =
+                            false
+
+                        viewModel
+                            .clearDeleteError()
+                    },
+                    enabled =
+                        !isDeleting
                 ) {
                     Text("Cancel")
                 }

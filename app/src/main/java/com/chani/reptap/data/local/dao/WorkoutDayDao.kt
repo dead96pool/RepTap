@@ -47,4 +47,9 @@ interface WorkoutDayDao {
     suspend fun update(
         day: WorkoutDay
     )
+
+    @Delete
+    suspend fun delete(
+        day: WorkoutDay
+    )
 }

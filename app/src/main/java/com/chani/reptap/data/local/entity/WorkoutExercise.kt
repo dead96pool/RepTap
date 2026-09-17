@@ -35,7 +35,5 @@ data class WorkoutExercise(
     val targetDurationSec: Int? = null,
     val restBetweenSetsSec: Int,
     val restBeforeNextSec: Int,
-    val defaultWeightKg: Float? = 5.0f,
-    @ColumnInfo(defaultValue = "1")
-    val isActive: Boolean = true
+    val defaultWeightKg: Float? = 5.0f
 )

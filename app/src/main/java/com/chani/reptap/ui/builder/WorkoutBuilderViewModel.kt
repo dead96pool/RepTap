@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.dao.WorkoutExerciseWithName
 import com.chani.reptap.data.local.entity.WorkoutDay
+import com.chani.reptap.data.repository.DeleteWorkoutResult
 import com.chani.reptap.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,18 @@ class WorkoutBuilderViewModel(
 
     val duplicateError =
         _duplicateError.asStateFlow()
+
+    private val _isDeleting =
+        MutableStateFlow(false)
+
+    val isDeleting =
+        _isDeleting.asStateFlow()
+
+    private val _deleteError =
+        MutableStateFlow<String?>(null)
+
+    val deleteError =
+        _deleteError.asStateFlow()
 
     val workoutDay: StateFlow<WorkoutDay?> =
         repository.workoutDays
@@ -150,6 +163,71 @@ class WorkoutBuilderViewModel(
             _isDuplicating.value =
                 false
         }
+    }
+
+    suspend fun deleteWorkout():
+            Boolean {
+
+        if (
+            _isDeleting.value ||
+            _isDuplicating.value
+        ) {
+            return false
+        }
+
+        _isDeleting.value =
+            true
+
+        _deleteError.value =
+            null
+
+        return try {
+            when (
+                repository.deleteWorkout(
+                    dayId
+                )
+            ) {
+                DeleteWorkoutResult.SUCCESS -> {
+                    true
+                }
+
+                DeleteWorkoutResult.LAST_WORKOUT -> {
+                    _deleteError.value =
+                        "At least one workout must remain in the training cycle."
+
+                    false
+                }
+
+                DeleteWorkoutResult.RECOVERY_DAY -> {
+                    _deleteError.value =
+                        "Recovery days cannot be deleted here."
+
+                    false
+                }
+
+                DeleteWorkoutResult.NOT_FOUND -> {
+                    _deleteError.value =
+                        "Workout no longer exists."
+
+                    false
+                }
+            }
+        } catch (
+            exception: Exception
+        ) {
+            _deleteError.value =
+                "Unable to delete workout"
+
+            false
+        } finally {
+            _isDeleting.value =
+                false
+        }
+    }
+
+    fun clearDeleteError() {
+        _deleteError.value =
+            null
     }
 
     fun clearDuplicateError() {

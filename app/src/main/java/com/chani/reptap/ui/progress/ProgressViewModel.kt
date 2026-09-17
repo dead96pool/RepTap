@@ -6,6 +6,7 @@ import com.chani.reptap.data.local.dao.ExerciseSessionVolume
 import com.chani.reptap.data.repository.WorkoutRepository
 import com.chani.reptap.data.local.dao.ExerciseTrendSession
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,10 +45,40 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
 
     init {
         viewModelScope.launch {
-            repository.completedSessionRecaps
-                .distinctUntilChanged()
-                .collect { sessions ->
-                    refreshProgress(sessions)
+            combine(
+                repository
+                    .completedSessionRecaps
+                    .distinctUntilChanged(),
+
+                repository
+                    .exercises
+                    .distinctUntilChanged()
+            ) {
+                    sessions,
+                    exercises ->
+
+                val currentNamesByHistoryKey =
+                    exercises.associate {
+                        it.historyKey to
+                                it.name
+                    }
+
+                sessions to
+                        currentNamesByHistoryKey
+            }
+                .collect {
+                        (
+                            sessions,
+                            currentNamesByHistoryKey
+                        ) ->
+
+                    refreshProgress(
+                        sessions =
+                            sessions,
+
+                        currentNamesByHistoryKey =
+                            currentNamesByHistoryKey
+                    )
                 }
         }
     }
@@ -59,7 +90,13 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
     }
 
     private suspend fun refreshProgress(
-        sessions: List<com.chani.reptap.data.local.dao.SessionRecap>
+        sessions:
+        List<
+                com.chani.reptap.data.local.dao.SessionRecap
+                >,
+
+        currentNamesByHistoryKey:
+        Map<String, String>
     ) {
         val (totalSessions, avgDuration, firstSessionDate) = coroutineScope {
             val totalSessionsDeferred = async {
@@ -102,7 +139,13 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
 
         _exerciseImprovements.value =
             withContext(Dispatchers.Default) {
-                calculateExerciseImprovements(trendSessions)
+                calculateExerciseImprovements(
+                    sessions =
+                        trendSessions,
+
+                    currentNamesByHistoryKey =
+                        currentNamesByHistoryKey
+                )
             }
     }
 
@@ -161,16 +204,20 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
     }
 
     private fun calculateExerciseImprovements(
-        sessions: List<ExerciseTrendSession>
+        sessions:
+        List<ExerciseTrendSession>,
+
+        currentNamesByHistoryKey:
+        Map<String, String>
     ): List<ExerciseImprovement> {
         /*
- * Logical exercise identity is now the permanent
- * historyKey.
- *
- * Do not include exerciseName in the grouping key:
- * historical name changes must not split one exercise's
- * Progress into separate timelines.
- */
+         * Logical exercise identity is now the permanent
+         * historyKey.
+         *
+         * Do not include exerciseName in the grouping key:
+         * historical name changes must not split one exercise's
+         * Progress into separate timelines.
+         */
         val grouped =
             sessions.groupBy {
                 Pair(
@@ -198,8 +245,18 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
              * resolution in Phase 6B, use the most recent
              * historical name for this logical exercise.
              */
+            /*
+             * Prefer the current Exercise Library name.
+             *
+             * If the Exercise has been deleted, fall back to its
+             * most recent historical snapshot name.
+             */
             val exerciseName =
-                sorted.first().exerciseName
+                currentNamesByHistoryKey[
+                    exerciseHistoryKey
+                ]
+                    ?: sorted.first()
+                        .exerciseName
 
             if (sorted.size < 6) {
                 continue

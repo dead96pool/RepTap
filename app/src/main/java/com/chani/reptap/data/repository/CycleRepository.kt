@@ -98,14 +98,14 @@ class CycleRepository(private val db: AppDatabase) {
                 continue
             }
 
-            val activeExerciseCount =
+            val exerciseCount =
                 db.workoutExerciseDao()
-                    .getActiveCountForDay(
+                    .getCountForDay(
                         candidate.id
                     )
 
             /*
-             * A non-recovery day with no active exercises is a
+             * A non-recovery day with no exercises is a
              * draft workout.
              *
              * Drafts are editable and selectable manually, but
@@ -114,7 +114,7 @@ class CycleRepository(private val db: AppDatabase) {
              *
              * They therefore do NOT consume a calendar day.
              */
-            if (activeExerciseCount == 0) {
+            if (exerciseCount == 0) {
                 continue
             }
 
