@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class ExerciseListItem(
-    val id: Long,
+    val historyKey: String,
     val name: String
 )
 
@@ -24,7 +24,12 @@ class AllExercisesViewModel(
         viewModelScope.launch {
             repository.exercises.collect { exercises ->
                 _groupedExercises.value = exercises
-                    .map { ExerciseListItem(it.id, it.name) }
+                    .map {
+                        ExerciseListItem(
+                            historyKey = it.historyKey,
+                            name = it.name
+                        )
+                    }
                     .groupBy { it.name.first().uppercaseChar() }
                     .toSortedMap()
             }

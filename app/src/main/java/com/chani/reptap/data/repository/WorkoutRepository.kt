@@ -80,11 +80,29 @@ class WorkoutRepository(private val db: AppDatabase) {
 
     suspend fun getAllExerciseSessionVolumes() = db.setLogDao().getAllExerciseSessionVolumes()
 
-    suspend fun getExerciseSessionDataPoints(exerciseId: Long) = db.setLogDao().getExerciseSessionDataPoints(exerciseId)
+    suspend fun getExerciseSessionDataPoints(
+        exerciseHistoryKey: String
+    ) =
+        db.setLogDao()
+            .getExerciseSessionDataPoints(
+                exerciseHistoryKey
+            )
 
-    suspend fun getExerciseSetDetails(exerciseId: Long) = db.setLogDao().getExerciseSetDetails(exerciseId)
+    suspend fun getExerciseSetDetails(
+        exerciseHistoryKey: String
+    ) =
+        db.setLogDao()
+            .getExerciseSetDetails(
+                exerciseHistoryKey
+            )
 
-    suspend fun getExerciseDetailStats(exerciseId: Long) = db.setLogDao().getExerciseDetailStats(exerciseId)
+    suspend fun getExerciseDetailStats(
+        exerciseHistoryKey: String
+    ) =
+        db.setLogDao()
+            .getExerciseDetailStats(
+                exerciseHistoryKey
+            )
 
     fun getSetDetailsForSession(sessionId: Long) = db.setLogDao().getSetDetailsForSession(sessionId)
 

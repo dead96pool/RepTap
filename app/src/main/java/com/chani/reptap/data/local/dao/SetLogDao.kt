@@ -22,7 +22,7 @@ data class SetLogDetail(
 )
 
 data class ExerciseSessionVolume(
-    val exerciseId: Long,
+    val exerciseHistoryKey: String,
     val exerciseName: String,
     val isBodyweight: Boolean,
     val sessionLogId: Long,
@@ -65,7 +65,7 @@ data class ExerciseSetDetail(
 )
 
 data class ExerciseTrendSession(
-    val exerciseId: Long,
+    val exerciseHistoryKey: String,
     val exerciseName: String,
     val trackingType: ExerciseTrackingType,
     val sessionLogId: Long,
@@ -157,11 +157,7 @@ interface SetLogDao {
     @Query(
         """
         SELECT
-            COALESCE(
-                sel.sourceExerciseId,
-                -1
-            ) AS exerciseId,
-
+            sel.exerciseHistoryKey AS exerciseHistoryKey,
             sel.exerciseNameSnapshot AS exerciseName,
             sel.isBodyweightSnapshot AS isBodyweight,
 
@@ -192,7 +188,6 @@ interface SetLogDao {
 
         GROUP BY
             sel.exerciseHistoryKey,
-            sel.sourceExerciseId,
             sel.exerciseNameSnapshot,
             sel.isBodyweightSnapshot,
             s.id,
@@ -246,14 +241,14 @@ interface SetLogDao {
             ON sel.sessionLogId = s.id
 
         WHERE s.status = 'COMPLETED'
-          AND sel.sourceExerciseId = :exerciseId
+          AND sel.exerciseHistoryKey = :exerciseHistoryKey
 
         GROUP BY
-            sel.sourceExerciseId
+            sel.exerciseHistoryKey
         """
     )
     suspend fun getExerciseDetailStats(
-        exerciseId: Long
+        exerciseHistoryKey: String
     ): ExerciseDetailStats?
 
     @Query(
@@ -308,7 +303,7 @@ interface SetLogDao {
         INNER JOIN session_logs sl
             ON sel.sessionLogId = sl.id
 
-        WHERE sel.sourceExerciseId = :exerciseId
+        WHERE sel.exerciseHistoryKey = :exerciseHistoryKey
           AND sl.status = 'COMPLETED'
 
         GROUP BY
@@ -320,7 +315,7 @@ interface SetLogDao {
         """
     )
     suspend fun getExerciseSessionDataPoints(
-        exerciseId: Long
+        exerciseHistoryKey: String
     ): List<ExerciseSessionDataPoint>
 
     @Query(
@@ -340,7 +335,7 @@ interface SetLogDao {
         INNER JOIN session_logs sl
             ON sel.sessionLogId = sl.id
 
-        WHERE sel.sourceExerciseId = :exerciseId
+        WHERE sel.exerciseHistoryKey = :exerciseHistoryKey
           AND sl.status = 'COMPLETED'
 
         ORDER BY
@@ -349,16 +344,13 @@ interface SetLogDao {
         """
     )
     suspend fun getExerciseSetDetails(
-        exerciseId: Long
+        exerciseHistoryKey: String
     ): List<ExerciseSetDetail>
 
     @Query(
         """
         SELECT
-            COALESCE(
-                sel.sourceExerciseId,
-                -1
-            ) AS exerciseId,
+            sel.exerciseHistoryKey AS exerciseHistoryKey,
 
             sel.exerciseNameSnapshot AS exerciseName,
             sel.trackingTypeSnapshot AS trackingType,
@@ -399,7 +391,6 @@ interface SetLogDao {
 
         GROUP BY
             sel.exerciseHistoryKey,
-            sel.sourceExerciseId,
             sel.exerciseNameSnapshot,
             sel.trackingTypeSnapshot,
             s.id,

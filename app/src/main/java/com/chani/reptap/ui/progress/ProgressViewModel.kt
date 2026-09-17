@@ -29,7 +29,7 @@ data class ProgressSummary(
 )
 
 data class ExerciseImprovement(
-    val exerciseId: Long,
+    val exerciseHistoryKey: String,
     val exerciseName: String,
     val percentChange: Double
 )
@@ -163,11 +163,18 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
     private fun calculateExerciseImprovements(
         sessions: List<ExerciseTrendSession>
     ): List<ExerciseImprovement> {
+        /*
+ * Logical exercise identity is now the permanent
+ * historyKey.
+ *
+ * Do not include exerciseName in the grouping key:
+ * historical name changes must not split one exercise's
+ * Progress into separate timelines.
+ */
         val grouped =
             sessions.groupBy {
-                Triple(
-                    it.exerciseId,
-                    it.exerciseName,
+                Pair(
+                    it.exerciseHistoryKey,
                     it.trackingType
                 )
             }
@@ -177,8 +184,7 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
 
         for ((key, exerciseSessions) in grouped) {
             val (
-                exerciseId,
-                exerciseName,
+                exerciseHistoryKey,
                 trackingType
             ) = key
 
@@ -186,6 +192,14 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
                 exerciseSessions.sortedByDescending {
                     it.startedAt
                 }
+
+            /*
+             * Until we add current/historical display-name
+             * resolution in Phase 6B, use the most recent
+             * historical name for this logical exercise.
+             */
+            val exerciseName =
+                sorted.first().exerciseName
 
             if (sorted.size < 6) {
                 continue
@@ -251,9 +265,12 @@ class ProgressViewModel(private val repository: WorkoutRepository) : ViewModel()
 
             results.add(
                 ExerciseImprovement(
-                    exerciseId = exerciseId,
-                    exerciseName = exerciseName,
-                    percentChange = percentChange
+                    exerciseHistoryKey =
+                        exerciseHistoryKey,
+                    exerciseName =
+                        exerciseName,
+                    percentChange =
+                        percentChange
                 )
             )
         }

@@ -130,7 +130,9 @@ class MainActivity : ComponentActivity() {
 
                                 onExerciseClick = { improvement ->
                                     navController.navigate(
-                                        "exercise_detail/${improvement.exerciseId}/${improvement.exerciseName}"
+                                        "exercise_detail/" +
+                                                "${improvement.exerciseHistoryKey}/" +
+                                                improvement.exerciseName
                                     )
                                 },
 
@@ -448,30 +450,84 @@ class MainActivity : ComponentActivity() {
                                 viewModel = allExercisesViewModel,
                                 onBack = { navController.popBackStack() },
                                 onExerciseClick = { item ->
-                                    navController.navigate("exercise_detail/${item.id}/${item.name}")
+                                    navController.navigate(
+                                        "exercise_detail/" +
+                                                "${item.historyKey}/" +
+                                                item.name
+                                    )
                                 }
                             )
                         }
 
                         composable(
-                            route = "exercise_detail/{exerciseId}/{exerciseName}",
+                            route =
+                                "exercise_detail/" +
+                                        "{exerciseHistoryKey}/" +
+                                        "{exerciseName}",
+
                             arguments = listOf(
-                                navArgument("exerciseId") { type = NavType.LongType },
-                                navArgument("exerciseName") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
-                            val exerciseName = backStackEntry.arguments?.getString("exerciseName") ?: ""
-                            val exerciseDetailViewModel: ExerciseDetailViewModel = viewModel(
-                                key = "exercise_detail_$exerciseId",
-                                factory = viewModelFactory {
-                                    initializer { ExerciseDetailViewModel(workoutRepository, exerciseId) }
+                                navArgument(
+                                    "exerciseHistoryKey"
+                                ) {
+                                    type =
+                                        NavType.StringType
+                                },
+
+                                navArgument(
+                                    "exerciseName"
+                                ) {
+                                    type =
+                                        NavType.StringType
                                 }
                             )
+                        ) { backStackEntry ->
+
+                            val exerciseHistoryKey =
+                                backStackEntry.arguments
+                                    ?.getString(
+                                        "exerciseHistoryKey"
+                                    )
+                                    ?: ""
+
+                            val exerciseName =
+                                backStackEntry.arguments
+                                    ?.getString(
+                                        "exerciseName"
+                                    )
+                                    ?: ""
+
+                            val exerciseDetailViewModel:
+                                    ExerciseDetailViewModel =
+                                viewModel(
+                                    key =
+                                        "exercise_detail_" +
+                                                exerciseHistoryKey,
+
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                ExerciseDetailViewModel(
+                                                    repository =
+                                                        workoutRepository,
+
+                                                    exerciseHistoryKey =
+                                                        exerciseHistoryKey
+                                                )
+                                            }
+                                        }
+                                )
+
                             ExerciseDetailScreen(
-                                exerciseName = exerciseName,
-                                viewModel = exerciseDetailViewModel,
-                                onBack = { navController.popBackStack() }
+                                exerciseName =
+                                    exerciseName,
+
+                                viewModel =
+                                    exerciseDetailViewModel,
+
+                                onBack = {
+                                    navController
+                                        .popBackStack()
+                                }
                             )
                         }
                     }

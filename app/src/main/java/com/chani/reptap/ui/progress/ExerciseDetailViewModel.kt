@@ -17,7 +17,7 @@ import java.time.ZoneId
 
 class ExerciseDetailViewModel(
     private val repository: WorkoutRepository,
-    private val exerciseId: Long
+    private val exerciseHistoryKey: String
 ) : ViewModel() {
 
     private val _stats = MutableStateFlow<ExerciseDetailStats?>(null)
@@ -35,12 +35,16 @@ class ExerciseDetailViewModel(
     init {
         viewModelScope.launch {
             val exerciseStats =
-                repository.getExerciseDetailStats(exerciseId)
+                repository.getExerciseDetailStats(
+                    exerciseHistoryKey
+                )
 
             _stats.value = exerciseStats
 
             val points =
-                repository.getExerciseSessionDataPoints(exerciseId)
+                repository.getExerciseSessionDataPoints(
+                    exerciseHistoryKey
+                )
 
             when (exerciseStats?.trackingType) {
                 ExerciseTrackingType.TIME -> {
@@ -72,7 +76,10 @@ class ExerciseDetailViewModel(
                 ExerciseTrackingType.REPS -> {
                     val volumes = repository
                         .getAllExerciseSessionVolumes()
-                        .filter { it.exerciseId == exerciseId }
+                        .filter {
+                            it.exerciseHistoryKey ==
+                                    exerciseHistoryKey
+                        }
                         .sortedByDescending { it.startedAt }
 
                     if (volumes.size >= 6) {
@@ -114,7 +121,9 @@ class ExerciseDetailViewModel(
                 allMonths.associateWith { month -> grouped[month].orEmpty() }
             }
 
-            _setDetailsBySession.value = repository.getExerciseSetDetails(exerciseId)
+            _setDetailsBySession.value = repository.getExerciseSetDetails(
+                exerciseHistoryKey
+            )
                 .groupBy { it.sessionLogId }
         }
     }
