@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,7 +33,8 @@ import com.chani.reptap.ui.components.RepTapTopAppBar
 fun AddExercisePickerScreen(
     viewModel: AddExercisePickerViewModel,
     onBack: () -> Unit,
-    onExerciseClick: (Exercise) -> Unit
+    onExerciseClick: (Exercise) -> Unit,
+    onCreateExercise: () -> Unit
 ) {
     val exercises by
     viewModel.availableExercises
@@ -42,7 +44,15 @@ fun AddExercisePickerScreen(
         topBar = {
             RepTapTopAppBar(
                 title = "Add Exercise",
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    TextButton(
+                        onClick =
+                            onCreateExercise
+                    ) {
+                        Text("New")
+                    }
+                }
             )
         }
     ) { innerPadding ->

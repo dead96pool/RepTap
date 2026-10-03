@@ -44,6 +44,8 @@ import com.chani.reptap.ui.builder.AddExercisePickerScreen
 import com.chani.reptap.ui.builder.AddExercisePickerViewModel
 import com.chani.reptap.ui.builder.AddWorkoutExerciseScreen
 import com.chani.reptap.ui.builder.AddWorkoutExerciseViewModel
+import com.chani.reptap.ui.builder.CreateExerciseScreen
+import com.chani.reptap.ui.builder.CreateExerciseViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -263,14 +265,55 @@ class MainActivity : ComponentActivity() {
                             AddExercisePickerScreen(
                                 viewModel =
                                     pickerViewModel,
+
                                 onBack = {
                                     navController.popBackStack()
                                 },
+
                                 onExerciseClick = { exercise ->
                                     navController.navigate(
                                         "add_workout_exercise/" +
                                                 "$dayId/${exercise.id}"
                                     )
+                                },
+
+                                onCreateExercise = {
+                                    navController.navigate(
+                                        "create_exercise"
+                                    )
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = "create_exercise"
+                        ) {
+
+                            val createExerciseViewModel:
+                                    CreateExerciseViewModel =
+                                viewModel(
+                                    key = "create_exercise",
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                CreateExerciseViewModel(
+                                                    repository =
+                                                        workoutRepository
+                                                )
+                                            }
+                                        }
+                                )
+
+                            CreateExerciseScreen(
+                                viewModel =
+                                    createExerciseViewModel,
+
+                                onBack = {
+                                    navController.popBackStack()
+                                },
+
+                                onSaved = {
+                                    navController.popBackStack()
                                 }
                             )
                         }

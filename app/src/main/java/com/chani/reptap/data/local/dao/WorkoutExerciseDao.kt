@@ -45,6 +45,11 @@ data class WorkoutExerciseSnapshotSource(
     val restBeforeNextSec: Int
 )
 
+data class ExerciseWorkoutUsage(
+    val workoutDayId: Long,
+    val workoutDayName: String
+)
+
 @Dao
 interface WorkoutExerciseDao {
     @Query("""
@@ -184,6 +189,26 @@ interface WorkoutExerciseDao {
         dayId: Long,
         exerciseId: Long
     ): WorkoutExercise?
+
+    @Query(
+        """
+    SELECT DISTINCT
+        wd.id AS workoutDayId,
+        wd.name AS workoutDayName
+
+    FROM workout_exercises we
+
+    INNER JOIN workout_days wd
+        ON we.workoutDayId = wd.id
+
+    WHERE we.exerciseId = :exerciseId
+
+    ORDER BY wd.slotNumber
+    """
+    )
+    suspend fun getWorkoutUsagesForExercise(
+        exerciseId: Long
+    ): List<ExerciseWorkoutUsage>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(items: List<WorkoutExercise>)

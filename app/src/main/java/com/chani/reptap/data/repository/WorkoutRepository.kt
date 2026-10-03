@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.UUID
 
 data class StartedWorkoutSession(
     val sessionId: Long,
@@ -30,15 +31,234 @@ enum class DeleteWorkoutResult {
     LAST_WORKOUT
 }
 
+enum class UpdateExerciseResult {
+    SUCCESS,
+    NOT_FOUND,
+    INVALID_NAME,
+    MUSCLE_NOT_FOUND,
+    TRACKING_TYPE_CHANGE_REQUIRES_NEW_IDENTITY
+}
+
+enum class DeleteExerciseResult {
+    SUCCESS,
+    NOT_FOUND,
+    IN_USE
+}
+
 class WorkoutRepository(private val db: AppDatabase) {
 
-    val exercises = db.exerciseDao().getAll()
+    val exercises =
+        db.exerciseDao()
+            .getAll()
+
+    val muscleGroups =
+        db.muscleGroupDao()
+            .getAll()
 
     val historicalExerciseIdentities =
         db.sessionExerciseLogDao()
             .observeHistoricalExerciseIdentities()
 
-    val workoutDays = db.workoutDayDao().getAll()
+    val workoutDays =
+        db.workoutDayDao()
+            .getAll()
+
+    suspend fun getExercise(
+        exerciseId: Long
+    ): Exercise? {
+        return db.exerciseDao()
+            .getById(exerciseId)
+    }
+
+    suspend fun getExerciseWorkoutUsages(
+        exerciseId: Long
+    ) =
+        db.workoutExerciseDao()
+            .getWorkoutUsagesForExercise(
+                exerciseId
+            )
+
+    suspend fun createExercise(
+        name: String,
+        primaryMuscleId: Long,
+        trackingType: ExerciseTrackingType,
+        isBodyweight: Boolean,
+        isPerSide: Boolean
+    ): Long? {
+
+        val trimmedName =
+            name.trim()
+
+        if (trimmedName.isBlank()) {
+            return null
+        }
+
+        val muscleExists =
+            db.muscleGroupDao()
+                .getById(primaryMuscleId) != null
+
+        if (!muscleExists) {
+            return null
+        }
+
+        val exerciseId =
+            db.exerciseDao()
+                .insert(
+                    Exercise(
+                        historyKey =
+                            UUID.randomUUID()
+                                .toString(),
+
+                        name =
+                            trimmedName,
+
+                        primaryMuscleId =
+                            primaryMuscleId,
+
+                        trackingType =
+                            trackingType,
+
+                        isBodyweight =
+                            isBodyweight,
+
+                        isPerSide =
+                            isPerSide
+                    )
+                )
+
+        return exerciseId
+            .takeIf {
+                it > 0L
+            }
+    }
+
+    suspend fun updateExerciseDefinition(
+        exerciseId: Long,
+        name: String,
+        primaryMuscleId: Long,
+        trackingType: ExerciseTrackingType,
+        isBodyweight: Boolean,
+        isPerSide: Boolean
+    ): UpdateExerciseResult {
+
+        val trimmedName =
+            name.trim()
+
+        if (trimmedName.isBlank()) {
+            return UpdateExerciseResult.INVALID_NAME
+        }
+
+        return db.withTransaction<UpdateExerciseResult> {
+
+            val exerciseDao =
+                db.exerciseDao()
+
+            val current =
+                exerciseDao.getById(
+                    exerciseId
+                )
+
+            if (current == null) {
+                return@withTransaction UpdateExerciseResult.NOT_FOUND
+            }
+
+            val muscleExists =
+                db.muscleGroupDao()
+                    .getById(
+                        primaryMuscleId
+                    ) != null
+
+            if (!muscleExists) {
+                return@withTransaction UpdateExerciseResult.MUSCLE_NOT_FOUND
+            }
+
+            /*
+             * REPS and TIME represent different historical
+             * measurement dimensions.
+             *
+             * Retaining the same historyKey while changing
+             * between them would mix incompatible Progress data.
+             */
+            if (
+                current.trackingType !=
+                trackingType
+            ) {
+                return@withTransaction UpdateExerciseResult
+                    .TRACKING_TYPE_CHANGE_REQUIRES_NEW_IDENTITY
+            }
+
+            exerciseDao.update(
+                current.copy(
+                    name =
+                        trimmedName,
+
+                    primaryMuscleId =
+                        primaryMuscleId,
+
+                    isBodyweight =
+                        isBodyweight,
+
+                    isPerSide =
+                        isPerSide
+                )
+            )
+
+            UpdateExerciseResult.SUCCESS
+        }
+    }
+
+    suspend fun deleteExercise(
+        exerciseId: Long
+    ): DeleteExerciseResult {
+
+        return db.withTransaction<DeleteExerciseResult> {
+
+            val exerciseDao =
+                db.exerciseDao()
+
+            val current =
+                exerciseDao.getById(
+                    exerciseId
+                )
+
+            if (current == null) {
+                return@withTransaction DeleteExerciseResult.NOT_FOUND
+            }
+
+            /*
+             * WorkoutExercise -> Exercise uses RESTRICT.
+             *
+             * We also deliberately refuse to silently remove
+             * current workout prescriptions when an Exercise
+             * is deleted.
+             */
+            val currentWorkoutUsages =
+                db.workoutExerciseDao()
+                    .getWorkoutUsagesForExercise(
+                        exerciseId
+                    )
+
+            if (
+                currentWorkoutUsages
+                    .isNotEmpty()
+            ) {
+                return@withTransaction DeleteExerciseResult.IN_USE
+            }
+
+            /*
+             * Historical SessionExerciseLog rows contain
+             * immutable snapshots and only soft source IDs.
+             *
+             * Removing the current Exercise therefore does not
+             * remove its History or Progress data.
+             */
+            exerciseDao.delete(
+                current
+            )
+
+            DeleteExerciseResult.SUCCESS
+        }
+    }
 
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
 

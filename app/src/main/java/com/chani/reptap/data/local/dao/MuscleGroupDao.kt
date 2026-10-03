@@ -6,12 +6,27 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MuscleGroupDao {
+
     @Query("SELECT * FROM muscle_groups ORDER BY name")
     fun getAll(): Flow<List<MuscleGroup>>
 
     @Query("SELECT * FROM muscle_groups")
     suspend fun getAllOnce(): List<MuscleGroup>
 
+    @Query(
+        """
+        SELECT *
+        FROM muscle_groups
+        WHERE id = :id
+        LIMIT 1
+        """
+    )
+    suspend fun getById(
+        id: Long
+    ): MuscleGroup?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(groups: List<MuscleGroup>)
+    suspend fun insertAll(
+        groups: List<MuscleGroup>
+    )
 }
