@@ -1,6 +1,7 @@
 ========== IDEAS ============
 
 - scrolling behind the keyboard when open
+- keyboard option to click "next" while filling in new workout info (bottom right)
 - better home screen display with new "bodyweight" info
 
 

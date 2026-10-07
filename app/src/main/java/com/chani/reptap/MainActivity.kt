@@ -420,6 +420,11 @@ class MainActivity : ComponentActivity() {
                                 onSaved = {
                                     navController
                                         .popBackStack()
+                                },
+
+                                onDeleted = {
+                                    navController
+                                        .popBackStack()
                                 }
                             )
                         }

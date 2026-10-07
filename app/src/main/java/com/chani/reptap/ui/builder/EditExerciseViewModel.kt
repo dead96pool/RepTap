@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.data.repository.UpdateExerciseResult
 import com.chani.reptap.data.repository.WorkoutRepository
+import com.chani.reptap.data.repository.DeleteExerciseResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,10 @@ import kotlinx.coroutines.launch
 data class EditExerciseUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
+    val isDeleting: Boolean = false,
+
     val saveComplete: Boolean = false,
+    val deleteComplete: Boolean = false,
 
     val name: String = "",
     val primaryMuscleId: Long? = null,
@@ -26,6 +30,10 @@ data class EditExerciseUiState(
 
     val isBodyweight: Boolean = false,
     val isPerSide: Boolean = false,
+
+    val workoutUsageNames:
+    List<String> =
+        emptyList(),
 
     val errorMessage: String? = null
 )
@@ -79,6 +87,12 @@ class EditExerciseViewModel(
                 return@launch
             }
 
+            val usages =
+                repository
+                    .getExerciseWorkoutUsages(
+                        exerciseId
+                    )
+
             _uiState.value =
                 EditExerciseUiState(
                     isLoading = false,
@@ -96,7 +110,13 @@ class EditExerciseViewModel(
                         exercise.isBodyweight,
 
                     isPerSide =
-                        exercise.isPerSide
+                        exercise.isPerSide,
+
+                    workoutUsageNames =
+                        usages
+                            .map {
+                                it.workoutDayName
+                            }
                 )
         }
     }
@@ -244,12 +264,95 @@ class EditExerciseViewModel(
         }
     }
 
+    fun delete() {
+
+        val current =
+            _uiState.value
+
+        if (
+            current.isLoading ||
+            current.isSaving ||
+            current.isDeleting
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.value =
+                current.copy(
+                    isDeleting = true,
+                    errorMessage = null
+                )
+
+            when (
+                repository.deleteExercise(
+                    exerciseId
+                )
+            ) {
+
+                DeleteExerciseResult.SUCCESS -> {
+
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeleting = false,
+                            deleteComplete = true
+                        )
+                }
+
+                DeleteExerciseResult.NOT_FOUND -> {
+
+                    showDeleteError(
+                        "Exercise no longer exists"
+                    )
+                }
+
+                DeleteExerciseResult.IN_USE -> {
+
+                    /*
+                     * Refresh the usage list in case the
+                     * current workout configuration changed
+                     * after this screen was opened.
+                     */
+                    val usages =
+                        repository
+                            .getExerciseWorkoutUsages(
+                                exerciseId
+                            )
+
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeleting = false,
+
+                            workoutUsageNames =
+                                usages.map {
+                                    it.workoutDayName
+                                },
+
+                            errorMessage =
+                                "Remove this exercise from its current workouts before deleting it."
+                        )
+                }
+            }
+        }
+    }
+
     private fun showSaveError(
         message: String
     ) {
         _uiState.value =
             _uiState.value.copy(
                 isSaving = false,
+                errorMessage = message
+            )
+    }
+
+    private fun showDeleteError(
+        message: String
+    ) {
+        _uiState.value =
+            _uiState.value.copy(
+                isDeleting = false,
                 errorMessage = message
             )
     }

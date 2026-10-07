@@ -34,12 +34,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chani.reptap.data.local.entity.ExerciseTrackingType
 import com.chani.reptap.ui.components.RepTapTopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 
 @Composable
 fun EditExerciseScreen(
     viewModel: EditExerciseViewModel,
     onBack: () -> Unit,
-    onSaved: () -> Unit
+    onSaved: () -> Unit,
+    onDeleted: () -> Unit
 ) {
     val state by
     viewModel.uiState
@@ -50,6 +54,11 @@ fun EditExerciseScreen(
         .collectAsStateWithLifecycle()
 
     var muscleMenuExpanded by
+    remember {
+        mutableStateOf(false)
+    }
+
+    var showDeleteDialog by
     remember {
         mutableStateOf(false)
     }
@@ -65,6 +74,14 @@ fun EditExerciseScreen(
     ) {
         if (state.saveComplete) {
             onSaved()
+        }
+    }
+
+    LaunchedEffect(
+        state.deleteComplete
+    ) {
+        if (state.deleteComplete) {
+            onDeleted()
         }
     }
 
@@ -414,7 +431,8 @@ fun EditExerciseScreen(
                         viewModel.save()
                     },
                     enabled =
-                        !state.isSaving,
+                        !state.isSaving &&
+                                !state.isDeleting,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -439,6 +457,182 @@ fun EditExerciseScreen(
                     }
                 }
             }
+
+            item {
+
+                OutlinedButton(
+                    onClick = {
+                        showDeleteDialog =
+                            true
+                    },
+
+                    enabled =
+                        !state.isSaving &&
+                                !state.isDeleting,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+
+                    colors =
+                        ButtonDefaults
+                            .outlinedButtonColors(
+                                contentColor =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .error
+                            )
+                ) {
+
+                    if (state.isDeleting) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.height(
+                                    22.dp
+                                ),
+                            strokeWidth = 2.dp
+                        )
+
+                    } else {
+
+                        Text(
+                            "Delete Exercise"
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    if (showDeleteDialog) {
+
+        val isInUse =
+            state.workoutUsageNames
+                .isNotEmpty()
+
+        AlertDialog(
+            onDismissRequest = {
+                if (!state.isDeleting) {
+                    showDeleteDialog =
+                        false
+                }
+            },
+
+            title = {
+                Text(
+                    if (isInUse) {
+                        "Exercise is in use"
+                    } else {
+                        "Delete exercise?"
+                    }
+                )
+            },
+
+            text = {
+
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            8.dp
+                        )
+                ) {
+
+                    if (isInUse) {
+
+                        Text(
+                            "This exercise is currently used by:"
+                        )
+
+                        state.workoutUsageNames
+                            .forEach {
+                                    workoutName ->
+
+                                Text(
+                                    text =
+                                        "• $workoutName",
+                                    fontWeight =
+                                        FontWeight.Medium
+                                )
+                            }
+
+                        Text(
+                            text =
+                                "Remove it from these workouts before deleting it from the Exercise Library.",
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
+                        )
+
+                    } else {
+
+                        Text(
+                            "This removes the current exercise from the Exercise Library."
+                        )
+
+                        Text(
+                            text =
+                                "Completed workout history and Progress data will remain available.",
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
+                        )
+                    }
+                }
+            },
+
+            confirmButton = {
+
+                if (isInUse) {
+
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog =
+                                false
+                        }
+                    ) {
+                        Text("OK")
+                    }
+
+                } else {
+
+                    TextButton(
+                        onClick = {
+
+                            showDeleteDialog =
+                                false
+
+                            viewModel.delete()
+                        }
+                    ) {
+                        Text(
+                            text = "Delete",
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+                        )
+                    }
+                }
+            },
+
+            dismissButton = {
+
+                if (!isInUse) {
+
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog =
+                                false
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 }
