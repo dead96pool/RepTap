@@ -192,6 +192,18 @@ interface WorkoutExerciseDao {
 
     @Query(
         """
+    SELECT *
+    FROM workout_exercises
+    WHERE exerciseId = :exerciseId
+    ORDER BY workoutDayId, orderIndex
+    """
+    )
+    suspend fun getAllForExercise(
+        exerciseId: Long
+    ): List<WorkoutExercise>
+
+    @Query(
+        """
     SELECT DISTINCT
         wd.id AS workoutDayId,
         wd.name AS workoutDayName

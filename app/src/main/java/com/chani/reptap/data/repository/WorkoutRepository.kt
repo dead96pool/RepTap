@@ -260,6 +260,120 @@ class WorkoutRepository(private val db: AppDatabase) {
         }
     }
 
+    suspend fun removeExerciseFromWorkoutsAndDelete(
+        exerciseId: Long
+    ): DeleteExerciseResult {
+
+        return db.withTransaction<DeleteExerciseResult> {
+
+            val exerciseDao =
+                db.exerciseDao()
+
+            val workoutExerciseDao =
+                db.workoutExerciseDao()
+
+            val currentExercise =
+                exerciseDao.getById(
+                    exerciseId
+                )
+
+            if (currentExercise == null) {
+                return@withTransaction DeleteExerciseResult.NOT_FOUND
+            }
+
+            /*
+             * Capture every CURRENT workout prescription using
+             * this Exercise before removing anything.
+             *
+             * Historical SessionExerciseLog rows are completely
+             * independent and are deliberately not touched.
+             */
+            val currentUsages =
+                workoutExerciseDao
+                    .getAllForExercise(
+                        exerciseId
+                    )
+
+            val affectedWorkoutDayIds =
+                currentUsages
+                    .map {
+                        it.workoutDayId
+                    }
+                    .distinct()
+
+            /*
+             * Remove every current WorkoutExercise reference.
+             *
+             * Exercise deletion itself cannot happen first because
+             * WorkoutExercise -> Exercise uses RESTRICT.
+             */
+            currentUsages.forEach {
+                    workoutExercise ->
+
+                workoutExerciseDao.delete(
+                    workoutExercise
+                )
+            }
+
+            /*
+             * Removing an exercise can leave gaps such as:
+             *
+             * 1, 2, 4, 5
+             *
+             * Rebuild each affected workout's order as:
+             *
+             * 1, 2, 3, 4
+             *
+             * If no rows remain, that workout simply becomes the
+             * existing valid empty-draft state.
+             */
+            affectedWorkoutDayIds
+                .forEach {
+                        workoutDayId ->
+
+                    val remaining =
+                        workoutExerciseDao
+                            .getForDayOnce(
+                                workoutDayId
+                            )
+
+                    remaining.forEachIndexed {
+                            index,
+                            workoutExercise ->
+
+                        val newOrderIndex =
+                            index + 1
+
+                        if (
+                            workoutExercise.orderIndex !=
+                            newOrderIndex
+                        ) {
+                            workoutExerciseDao.update(
+                                workoutExercise.copy(
+                                    orderIndex =
+                                        newOrderIndex
+                                )
+                            )
+                        }
+                    }
+                }
+
+            /*
+             * All current foreign-key references are now gone,
+             * so the Exercise row can safely be removed.
+             *
+             * Immutable History and Progress survive because
+             * SessionExerciseLog stores snapshots and only a soft
+             * sourceExerciseId.
+             */
+            exerciseDao.delete(
+                currentExercise
+            )
+
+            DeleteExerciseResult.SUCCESS
+        }
+    }
+
     fun getExercisesForDayWithNames(dayId: Long) = db.workoutExerciseDao().getForDayWithNames(dayId)
 
     fun getWorkoutExerciseWithName(

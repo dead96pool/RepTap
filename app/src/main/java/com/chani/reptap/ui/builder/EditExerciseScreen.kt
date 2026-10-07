@@ -508,9 +508,11 @@ fun EditExerciseScreen(
 
     if (showDeleteDialog) {
 
+        val usageCount =
+            state.workoutUsageNames.size
+
         val isInUse =
-            state.workoutUsageNames
-                .isNotEmpty()
+            usageCount > 0
 
         AlertDialog(
             onDismissRequest = {
@@ -523,7 +525,7 @@ fun EditExerciseScreen(
             title = {
                 Text(
                     if (isInUse) {
-                        "Exercise is in use"
+                        "Remove and delete exercise?"
                     } else {
                         "Delete exercise?"
                     }
@@ -542,7 +544,12 @@ fun EditExerciseScreen(
                     if (isInUse) {
 
                         Text(
-                            "This exercise is currently used by:"
+                            text =
+                                if (usageCount == 1) {
+                                    "This exercise is currently used by 1 workout:"
+                                } else {
+                                    "This exercise is currently used by $usageCount workouts:"
+                                }
                         )
 
                         state.workoutUsageNames
@@ -559,7 +566,21 @@ fun EditExerciseScreen(
 
                         Text(
                             text =
-                                "Remove it from these workouts before deleting it from the Exercise Library.",
+                                "Continuing will remove the exercise from these workouts and delete it from the Exercise Library."
+                        )
+
+                        Text(
+                            text =
+                                "If a workout has no exercises left, it will become an empty draft.",
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium
+                        )
+
+                        Text(
+                            text =
+                                "Completed workout History and Progress data will remain available.",
                             style =
                                 MaterialTheme
                                     .typography
@@ -574,7 +595,7 @@ fun EditExerciseScreen(
 
                         Text(
                             text =
-                                "Completed workout history and Progress data will remain available.",
+                                "Completed workout History and Progress data will remain available.",
                             style =
                                 MaterialTheme
                                     .typography
@@ -586,51 +607,48 @@ fun EditExerciseScreen(
 
             confirmButton = {
 
-                if (isInUse) {
+                TextButton(
+                    onClick = {
 
-                    TextButton(
-                        onClick = {
-                            showDeleteDialog =
-                                false
-                        }
-                    ) {
-                        Text("OK")
-                    }
+                        showDeleteDialog =
+                            false
 
-                } else {
+                        if (isInUse) {
 
-                    TextButton(
-                        onClick = {
+                            viewModel
+                                .removeFromWorkoutsAndDelete()
 
-                            showDeleteDialog =
-                                false
+                        } else {
 
                             viewModel.delete()
                         }
-                    ) {
-                        Text(
-                            text = "Delete",
-                            color =
-                                MaterialTheme
-                                    .colorScheme
-                                    .error
-                        )
                     }
+                ) {
+                    Text(
+                        text =
+                            if (isInUse) {
+                                "Remove & Delete"
+                            } else {
+                                "Delete"
+                            },
+
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                    )
                 }
             },
 
             dismissButton = {
 
-                if (!isInUse) {
-
-                    TextButton(
-                        onClick = {
-                            showDeleteDialog =
-                                false
-                        }
-                    ) {
-                        Text("Cancel")
+                TextButton(
+                    onClick = {
+                        showDeleteDialog =
+                            false
                     }
+                ) {
+                    Text("Cancel")
                 }
             }
         )

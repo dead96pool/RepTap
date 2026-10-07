@@ -337,6 +337,68 @@ class EditExerciseViewModel(
         }
     }
 
+    fun removeFromWorkoutsAndDelete() {
+
+        val current =
+            _uiState.value
+
+        if (
+            current.isLoading ||
+            current.isSaving ||
+            current.isDeleting
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            _uiState.value =
+                current.copy(
+                    isDeleting = true,
+                    errorMessage = null
+                )
+
+            when (
+                repository
+                    .removeExerciseFromWorkoutsAndDelete(
+                        exerciseId
+                    )
+            ) {
+
+                DeleteExerciseResult.SUCCESS -> {
+
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeleting = false,
+                            deleteComplete = true
+                        )
+                }
+
+                DeleteExerciseResult.NOT_FOUND -> {
+
+                    showDeleteError(
+                        "Exercise no longer exists"
+                    )
+                }
+
+                /*
+                 * This result should not normally be possible for
+                 * this operation because the repository deliberately
+                 * removes every current WorkoutExercise first.
+                 *
+                 * Keep the branch so the ViewModel remains exhaustive
+                 * if DeleteExerciseResult is reused.
+                 */
+                DeleteExerciseResult.IN_USE -> {
+
+                    showDeleteError(
+                        "Unable to remove exercise from its current workouts"
+                    )
+                }
+            }
+        }
+    }
+
     private fun showSaveError(
         message: String
     ) {
