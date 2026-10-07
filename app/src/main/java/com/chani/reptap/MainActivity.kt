@@ -46,6 +46,10 @@ import com.chani.reptap.ui.builder.AddWorkoutExerciseScreen
 import com.chani.reptap.ui.builder.AddWorkoutExerciseViewModel
 import com.chani.reptap.ui.builder.CreateExerciseScreen
 import com.chani.reptap.ui.builder.CreateExerciseViewModel
+import com.chani.reptap.ui.builder.ExerciseLibraryScreen
+import com.chani.reptap.ui.builder.ExerciseLibraryViewModel
+import com.chani.reptap.ui.builder.EditExerciseScreen
+import com.chani.reptap.ui.builder.EditExerciseViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -281,6 +285,52 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(
                                         "create_exercise"
                                     )
+                                },
+
+                                onManageExercises = {
+                                    navController.navigate(
+                                        "exercise_library"
+                                    )
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = "exercise_library"
+                        ) {
+
+                            val libraryViewModel:
+                                    ExerciseLibraryViewModel =
+                                viewModel(
+                                    key =
+                                        "exercise_library",
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                ExerciseLibraryViewModel(
+                                                    repository =
+                                                        workoutRepository
+                                                )
+                                            }
+                                        }
+                                )
+
+                            ExerciseLibraryScreen(
+                                viewModel =
+                                    libraryViewModel,
+
+                                onBack = {
+                                    navController
+                                        .popBackStack()
+                                },
+
+                                onExerciseClick = {
+                                        exercise ->
+
+                                    navController.navigate(
+                                        "edit_exercise/" +
+                                                exercise.id
+                                    )
                                 }
                             )
                         }
@@ -314,6 +364,62 @@ class MainActivity : ComponentActivity() {
 
                                 onSaved = {
                                     navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        composable(
+                            route =
+                                "edit_exercise/{exerciseId}",
+                            arguments =
+                                listOf(
+                                    navArgument(
+                                        "exerciseId"
+                                    ) {
+                                        type =
+                                            NavType.LongType
+                                    }
+                                )
+                        ) { backStackEntry ->
+
+                            val exerciseId =
+                                backStackEntry
+                                    .arguments
+                                    ?.getLong(
+                                        "exerciseId"
+                                    )
+                                    ?: 0L
+
+                            val editExerciseViewModel:
+                                    EditExerciseViewModel =
+                                viewModel(
+                                    key =
+                                        "edit_exercise_$exerciseId",
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                EditExerciseViewModel(
+                                                    repository =
+                                                        workoutRepository,
+                                                    exerciseId =
+                                                        exerciseId
+                                                )
+                                            }
+                                        }
+                                )
+
+                            EditExerciseScreen(
+                                viewModel =
+                                    editExerciseViewModel,
+
+                                onBack = {
+                                    navController
+                                        .popBackStack()
+                                },
+
+                                onSaved = {
+                                    navController
+                                        .popBackStack()
                                 }
                             )
                         }

@@ -34,7 +34,8 @@ fun AddExercisePickerScreen(
     viewModel: AddExercisePickerViewModel,
     onBack: () -> Unit,
     onExerciseClick: (Exercise) -> Unit,
-    onCreateExercise: () -> Unit
+    onCreateExercise: () -> Unit,
+    onManageExercises: () -> Unit
 ) {
     val exercises by
     viewModel.availableExercises
@@ -46,6 +47,14 @@ fun AddExercisePickerScreen(
                 title = "Add Exercise",
                 onBack = onBack,
                 actions = {
+
+                    TextButton(
+                        onClick =
+                            onManageExercises
+                    ) {
+                        Text("Manage")
+                    }
+
                     TextButton(
                         onClick =
                             onCreateExercise
