@@ -19,6 +19,8 @@
 
 - option to finish set lower than target
 
+- add option to input body measurments + detailed stats on growth
+
 
 
 | Priority | Feature                                        | Why                                                                                    |

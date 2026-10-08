@@ -50,6 +50,7 @@ import com.chani.reptap.ui.builder.ExerciseLibraryScreen
 import com.chani.reptap.ui.builder.ExerciseLibraryViewModel
 import com.chani.reptap.ui.builder.EditExerciseScreen
 import com.chani.reptap.ui.builder.EditExerciseViewModel
+import android.net.Uri
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -282,9 +283,29 @@ class MainActivity : ComponentActivity() {
                                 },
 
                                 onCreateExercise = {
-                                    navController.navigate(
-                                        "create_exercise"
-                                    )
+                                        initialName ->
+
+                                    val trimmedName =
+                                        initialName.trim()
+
+                                    if (
+                                        trimmedName.isBlank()
+                                    ) {
+
+                                        navController.navigate(
+                                            "create_exercise"
+                                        )
+
+                                    } else {
+
+                                        navController.navigate(
+                                            "create_exercise?" +
+                                                    "initialName=" +
+                                                    Uri.encode(
+                                                        trimmedName
+                                                    )
+                                        )
+                                    }
                                 },
 
                                 onManageExercises = {
@@ -336,19 +357,48 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(
-                            route = "create_exercise"
-                        ) {
+                            route =
+                                "create_exercise?" +
+                                        "initialName={initialName}",
+
+                            arguments =
+                                listOf(
+                                    navArgument(
+                                        "initialName"
+                                    ) {
+                                        type =
+                                            NavType.StringType
+
+                                        defaultValue =
+                                            ""
+                                    }
+                                )
+                        ) { backStackEntry ->
+
+                            val initialName =
+                                backStackEntry
+                                    .arguments
+                                    ?.getString(
+                                        "initialName"
+                                    )
+                                    ?: ""
 
                             val createExerciseViewModel:
                                     CreateExerciseViewModel =
                                 viewModel(
-                                    key = "create_exercise",
+                                    key =
+                                        "create_exercise_" +
+                                                initialName,
+
                                     factory =
                                         viewModelFactory {
                                             initializer {
                                                 CreateExerciseViewModel(
                                                     repository =
-                                                        workoutRepository
+                                                        workoutRepository,
+
+                                                    initialName =
+                                                        initialName
                                                 )
                                             }
                                         }
@@ -359,11 +409,13 @@ class MainActivity : ComponentActivity() {
                                     createExerciseViewModel,
 
                                 onBack = {
-                                    navController.popBackStack()
+                                    navController
+                                        .popBackStack()
                                 },
 
                                 onSaved = {
-                                    navController.popBackStack()
+                                    navController
+                                        .popBackStack()
                                 }
                             )
                         }

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,18 +35,24 @@ fun AddExercisePickerScreen(
     viewModel: AddExercisePickerViewModel,
     onBack: () -> Unit,
     onExerciseClick: (Exercise) -> Unit,
-    onCreateExercise: () -> Unit,
+    onCreateExercise: (String) -> Unit,
     onManageExercises: () -> Unit
 ) {
-    val exercises by
-    viewModel.availableExercises
+    val searchQuery by
+    viewModel.searchQuery
+        .collectAsStateWithLifecycle()
+
+    val items by
+    viewModel.searchItems
         .collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             RepTapTopAppBar(
                 title = "Add Exercise",
+
                 onBack = onBack,
+
                 actions = {
 
                     TextButton(
@@ -54,125 +61,401 @@ fun AddExercisePickerScreen(
                     ) {
                         Text("Manage")
                     }
-
-                    TextButton(
-                        onClick =
-                            onCreateExercise
-                    ) {
-                        Text("New")
-                    }
                 }
             )
         }
     ) { innerPadding ->
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top =
-                    innerPadding
-                        .calculateTopPadding() +
-                            8.dp,
-                bottom = 12.dp
-            )
-        ) {
-            items(
-                items = exercises,
-                key = { it.id }
-            ) { exercise ->
+            modifier =
+                Modifier.fillMaxSize(),
 
-                ExercisePickerRow(
-                    exercise = exercise,
-                    onClick = {
-                        onExerciseClick(exercise)
-                    }
+            contentPadding =
+                PaddingValues(
+                    start = 12.dp,
+
+                    top =
+                        innerPadding
+                            .calculateTopPadding() +
+                                8.dp,
+
+                    end = 12.dp,
+
+                    bottom = 16.dp
+                ),
+
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    0.dp
                 )
+        ) {
 
-                HorizontalDivider(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = 12.dp
+            item {
+
+                OutlinedTextField(
+                    value =
+                        searchQuery,
+
+                    onValueChange =
+                        viewModel::
+                        setSearchQuery,
+
+                    label = {
+                        Text(
+                            "Search exercises"
                         )
+                    },
+
+                    placeholder = {
+                        Text(
+                            "e.g. cable curl"
+                        )
+                    },
+
+                    singleLine = true,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                bottom = 8.dp
+                            )
                 )
             }
 
-            if (exercises.isEmpty()) {
-                item {
-                    Text(
-                        text =
-                            "All exercises are already in this workout",
-                        style =
-                            MaterialTheme
-                                .typography
-                                .bodyMedium,
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant,
-                        modifier =
-                            Modifier.padding(16.dp)
-                    )
+            items(
+                items = items,
+                key = {
+                    it.key
                 }
+            ) { item ->
+
+                when (
+                    item.kind
+                ) {
+
+                    AddExerciseSearchItemKind
+                        .CURRENT -> {
+
+                        CurrentExerciseRow(
+                            item = item,
+
+                            onClick = {
+
+                                item.exercise
+                                    ?.let(
+                                        onExerciseClick
+                                    )
+                            }
+                        )
+                    }
+
+                    AddExerciseSearchItemKind
+                        .HISTORICAL_ONLY -> {
+
+                        HistoricalExerciseRow(
+                            item = item
+                        )
+                    }
+
+                    AddExerciseSearchItemKind
+                        .CREATE_NEW -> {
+
+                        CreateExerciseRow(
+                            typedName =
+                                item.name,
+
+                            onClick = {
+                                onCreateExercise(
+                                    item.name
+                                )
+                            }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
             }
         }
     }
 }
 
 @Composable
-private fun ExercisePickerRow(
-    exercise: Exercise,
+private fun CurrentExerciseRow(
+    item: AddExerciseSearchItem,
     onClick: () -> Unit
 ) {
+    val exercise =
+        item.exercise
+            ?: return
+
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = onClick
-            )
-            .padding(
-                horizontal = 12.dp,
-                vertical = 14.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled =
+                        !item
+                            .isAlreadyInWorkout,
+
+                    onClick =
+                        onClick
+                )
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 14.dp
+                ),
+
         horizontalArrangement =
             Arrangement.SpaceBetween,
+
         verticalAlignment =
             Alignment.CenterVertically
     ) {
+
         Column(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(1f)
         ) {
+
             Text(
-                text = exercise.name,
+                text =
+                    exercise.name,
+
                 style =
                     MaterialTheme
                         .typography
                         .bodyMedium,
+
                 fontWeight =
                     FontWeight.Medium
             )
 
             Text(
-                text = buildString {
-                    append(
-                        when (
-                            exercise.trackingType
+                text =
+                    buildString {
+
+                        append(
+                            when (
+                                exercise.trackingType
+                            ) {
+
+                                ExerciseTrackingType.REPS ->
+                                    "Rep exercise"
+
+                                ExerciseTrackingType.TIME ->
+                                    "Timed exercise"
+                            }
+                        )
+
+                        if (
+                            exercise.isBodyweight
                         ) {
-                            ExerciseTrackingType.REPS ->
-                                "Rep exercise"
-
-                            ExerciseTrackingType.TIME ->
-                                "Timed exercise"
+                            append(
+                                " · bodyweight"
+                            )
                         }
-                    )
 
-                    if (exercise.isPerSide) {
-                        append(" · each side")
-                    }
-                },
+                        if (
+                            exercise.isPerSide
+                        ) {
+                            append(
+                                " · each side"
+                            )
+                        }
+
+                        if (
+                            item.isAlreadyInWorkout
+                        ) {
+                            append(
+                                " · already in workout"
+                            )
+                        }
+                    },
+
                 style =
                     MaterialTheme
                         .typography
                         .bodySmall,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+            )
+        }
+
+        if (
+            item.isAlreadyInWorkout
+        ) {
+
+            Text(
+                text = "Added",
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .labelMedium,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+            )
+
+        } else {
+
+            Icon(
+                imageVector =
+                    Icons.AutoMirrored
+                        .Filled
+                        .KeyboardArrowRight,
+
+                contentDescription =
+                    "Configure exercise",
+
+                tint =
+                    MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoricalExerciseRow(
+    item: AddExerciseSearchItem
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 14.dp
+                ),
+
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+
+            Text(
+                text =
+                    item.name,
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyMedium,
+
+                fontWeight =
+                    FontWeight.Medium
+            )
+
+            Text(
+                text =
+                    "Previously used",
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+            )
+        }
+
+        Text(
+            text =
+                "Previously used",
+
+            style =
+                MaterialTheme
+                    .typography
+                    .labelMedium,
+
+            color =
+                MaterialTheme
+                    .colorScheme
+                    .onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CreateExerciseRow(
+    typedName: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    onClick = onClick
+                )
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 16.dp
+                ),
+
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+
+            Text(
+                text =
+                    if (
+                        typedName.isBlank()
+                    ) {
+                        "Create new exercise"
+                    } else {
+                        "Create \"$typedName\""
+                    },
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodyMedium,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .primary
+            )
+
+            Text(
+                text =
+                    "Create a new exercise identity",
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+
                 color =
                     MaterialTheme
                         .colorScheme
@@ -182,13 +465,12 @@ private fun ExercisePickerRow(
 
         Icon(
             imageVector =
-                Icons.AutoMirrored.Filled
+                Icons.AutoMirrored
+                    .Filled
                     .KeyboardArrowRight,
-            contentDescription = null,
-            tint =
-                MaterialTheme
-                    .colorScheme
-                    .onSurfaceVariant
+
+            contentDescription =
+                "Create exercise"
         )
     }
 }

@@ -25,7 +25,8 @@ data class CreateExerciseUiState(
 )
 
 class CreateExerciseViewModel(
-    private val repository: WorkoutRepository
+    private val repository: WorkoutRepository,
+    initialName: String = ""
 ) : ViewModel() {
 
     val muscleGroups =
@@ -40,7 +41,9 @@ class CreateExerciseViewModel(
 
     private val _uiState =
         MutableStateFlow(
-            CreateExerciseUiState()
+            CreateExerciseUiState(
+                name = initialName
+            )
         )
 
     val uiState:
