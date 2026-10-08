@@ -295,13 +295,13 @@ class MainActivity : ComponentActivity() {
                                     ) {
 
                                         navController.navigate(
-                                            "create_exercise"
+                                            "create_exercise/$dayId"
                                         )
 
                                     } else {
 
                                         navController.navigate(
-                                            "create_exercise?" +
+                                            "create_exercise/$dayId?" +
                                                     "initialName=" +
                                                     Uri.encode(
                                                         trimmedName
@@ -321,6 +321,7 @@ class MainActivity : ComponentActivity() {
 
                                     navController.navigate(
                                         "restore_exercise/" +
+                                                "$dayId/" +
                                                 Uri.encode(
                                                     historyKey
                                                 )
@@ -371,10 +372,20 @@ class MainActivity : ComponentActivity() {
 
                         composable(
                             route =
-                                "restore_exercise/{historyKey}",
+                                "restore_exercise/" +
+                                        "{dayId}/" +
+                                        "{historyKey}",
 
                             arguments =
                                 listOf(
+
+                                    navArgument(
+                                        "dayId"
+                                    ) {
+                                        type =
+                                            NavType.LongType
+                                    },
+
                                     navArgument(
                                         "historyKey"
                                     ) {
@@ -383,6 +394,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                         ) { backStackEntry ->
+
+                            val dayId =
+                                backStackEntry
+                                    .arguments
+                                    ?.getLong(
+                                        "dayId"
+                                    )
+                                    ?: 0L
 
                             val historyKey =
                                 backStackEntry
@@ -397,7 +416,7 @@ class MainActivity : ComponentActivity() {
                                 viewModel(
                                     key =
                                         "restore_exercise_" +
-                                                historyKey,
+                                                "${dayId}_$historyKey",
 
                                     factory =
                                         viewModelFactory {
@@ -423,19 +442,41 @@ class MainActivity : ComponentActivity() {
                                 },
 
                                 onRestored = {
+                                        exerciseId ->
+
+                                    /*
+                                     * Restoration has already recreated the current
+                                     * Exercise row using its historical historyKey.
+                                     *
+                                     * Remove this completed Restore screen before
+                                     * continuing to workout configuration.
+                                     */
                                     navController
                                         .popBackStack()
+
+                                    navController.navigate(
+                                        "add_workout_exercise/" +
+                                                "$dayId/$exerciseId"
+                                    )
                                 }
                             )
                         }
 
                         composable(
                             route =
-                                "create_exercise?" +
+                                "create_exercise/{dayId}?" +
                                         "initialName={initialName}",
 
                             arguments =
                                 listOf(
+
+                                    navArgument(
+                                        "dayId"
+                                    ) {
+                                        type =
+                                            NavType.LongType
+                                    },
+
                                     navArgument(
                                         "initialName"
                                     ) {
@@ -447,6 +488,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                         ) { backStackEntry ->
+
+                            val dayId =
+                                backStackEntry
+                                    .arguments
+                                    ?.getLong(
+                                        "dayId"
+                                    )
+                                    ?: 0L
 
                             val initialName =
                                 backStackEntry
@@ -461,7 +510,7 @@ class MainActivity : ComponentActivity() {
                                 viewModel(
                                     key =
                                         "create_exercise_" +
-                                                initialName,
+                                                "${dayId}_$initialName",
 
                                     factory =
                                         viewModelFactory {
@@ -487,8 +536,26 @@ class MainActivity : ComponentActivity() {
                                 },
 
                                 onSaved = {
+                                        exerciseId ->
+
+                                    /*
+                                     * Creation is already complete at this point.
+                                     *
+                                     * Remove the definition screen from the stack,
+                                     * return underneath to Add Exercise, then open
+                                     * the normal workout-specific configuration.
+                                     *
+                                     * If the user backs out of configuration, they
+                                     * therefore return to Add Exercise rather than
+                                     * seeing the already-completed Create screen.
+                                     */
                                     navController
                                         .popBackStack()
+
+                                    navController.navigate(
+                                        "add_workout_exercise/" +
+                                                "$dayId/$exerciseId"
+                                    )
                                 }
                             )
                         }

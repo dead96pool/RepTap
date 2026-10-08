@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 data class RestoreExerciseUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
-    val restoreComplete: Boolean = false,
+    val restoredExerciseId: Long? = null,
 
     val name: String = "",
     val primaryMuscleId: Long? = null,
@@ -221,8 +221,8 @@ class RestoreExerciseViewModel(
                 _uiState.value.copy(
                     isSaving = false,
 
-                    restoreComplete =
-                        restoredId != null,
+                    restoredExerciseId =
+                        restoredId,
 
                     errorMessage =
                         if (

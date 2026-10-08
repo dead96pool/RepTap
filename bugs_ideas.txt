@@ -21,6 +21,9 @@
 
 - add option to input body measurments + detailed stats on growth
 
+- cross/clear all button in the search exercise textbar
+
+
 
 
 | Priority | Feature                                        | Why                                                                                    |

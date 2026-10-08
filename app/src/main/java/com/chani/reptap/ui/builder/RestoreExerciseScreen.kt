@@ -39,7 +39,7 @@ import com.chani.reptap.ui.components.RepTapTopAppBar
 fun RestoreExerciseScreen(
     viewModel: RestoreExerciseViewModel,
     onBack: () -> Unit,
-    onRestored: () -> Unit
+    onRestored: (Long) -> Unit
 ) {
     val state by
     viewModel.uiState
@@ -61,11 +61,16 @@ fun RestoreExerciseScreen(
         }
 
     LaunchedEffect(
-        state.restoreComplete
+        state.restoredExerciseId
     ) {
-        if (state.restoreComplete) {
-            onRestored()
-        }
+        state.restoredExerciseId
+            ?.let {
+                    exerciseId ->
+
+                onRestored(
+                    exerciseId
+                )
+            }
     }
 
     Scaffold(

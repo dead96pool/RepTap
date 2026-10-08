@@ -20,7 +20,7 @@ data class CreateExerciseUiState(
     val isPerSide: Boolean = false,
 
     val isSaving: Boolean = false,
-    val saveComplete: Boolean = false,
+    val createdExerciseId: Long? = null,
     val errorMessage: String? = null
 )
 
@@ -155,8 +155,10 @@ class CreateExerciseViewModel(
             _uiState.value =
                 _uiState.value.copy(
                     isSaving = false,
-                    saveComplete =
-                        newExerciseId != null,
+
+                    createdExerciseId =
+                        newExerciseId,
+
                     errorMessage =
                         if (newExerciseId == null) {
                             "Unable to create exercise"
