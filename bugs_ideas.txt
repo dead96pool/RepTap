@@ -24,5 +24,14 @@
 
 - cross/clear all button in the search exercise textbar
 
+- finishSet() starts an asynchronous database write without immediately moving the UI into a non-interactive saving state.
+Rapid repeated taps could potentially submit the same set more than once.
 
+- Potential Quit Session persistence race
+quitSession() launches the database update inside viewModelScope. The screen then navigates away immediately.
+Depending on lifecycle timing, that coroutine could be cancelled before the session's QUIT status is persisted.
+This deserves a small reliability improvement before we depend on the app for important workout records.
+
+
+- display previous reps on active workout screen | Following phase — Previous-session/set reference
 
