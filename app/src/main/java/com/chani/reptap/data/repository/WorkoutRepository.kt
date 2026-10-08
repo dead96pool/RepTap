@@ -78,6 +78,22 @@ class WorkoutRepository(private val db: AppDatabase) {
                 exerciseId
             )
 
+    suspend fun getLatestHistoricalExerciseDefinition(
+        historyKey: String
+    ) =
+        db.sessionExerciseLogDao()
+            .getLatestHistoricalExerciseDefinition(
+                historyKey
+            )
+
+    suspend fun getMuscleGroupByHistoryKey(
+        historyKey: String
+    ) =
+        db.muscleGroupDao()
+            .getByHistoryKey(
+                historyKey
+            )
+
     suspend fun createExercise(
         name: String,
         primaryMuscleId: Long,
@@ -204,6 +220,97 @@ class WorkoutRepository(private val db: AppDatabase) {
             )
 
             UpdateExerciseResult.SUCCESS
+        }
+    }
+
+    suspend fun restoreHistoricalExercise(
+        historyKey: String,
+        name: String,
+        primaryMuscleId: Long,
+        isBodyweight: Boolean,
+        isPerSide: Boolean
+    ): Long? {
+
+        val trimmedName =
+            name.trim()
+
+        if (trimmedName.isBlank()) {
+            return null
+        }
+
+        return db.withTransaction<Long?> {
+
+            /*
+             * Restoration only applies when this logical
+             * Exercise is currently absent.
+             */
+            val existing =
+                db.exerciseDao()
+                    .getByHistoryKey(
+                        historyKey
+                    )
+
+            if (existing != null) {
+                return@withTransaction null
+            }
+
+            val historicalDefinition =
+                db.sessionExerciseLogDao()
+                    .getLatestHistoricalExerciseDefinition(
+                        historyKey
+                    )
+
+            if (historicalDefinition == null) {
+                return@withTransaction null
+            }
+
+            val muscle =
+                db.muscleGroupDao()
+                    .getById(
+                        primaryMuscleId
+                    )
+
+            if (muscle == null) {
+                return@withTransaction null
+            }
+
+            /*
+             * Most definition properties may be updated while
+             * restoring.
+             *
+             * Tracking type deliberately comes from history.
+             * REPS <-> TIME requires a new logical identity
+             * instead of reusing this historyKey.
+             */
+            val restoredId =
+                db.exerciseDao()
+                    .insert(
+                        Exercise(
+                            historyKey =
+                                historicalDefinition
+                                    .exerciseHistoryKey,
+
+                            name =
+                                trimmedName,
+
+                            primaryMuscleId =
+                                muscle.id,
+
+                            trackingType =
+                                historicalDefinition
+                                    .trackingType,
+
+                            isBodyweight =
+                                isBodyweight,
+
+                            isPerSide =
+                                isPerSide
+                        )
+                    )
+
+            restoredId.takeIf {
+                it > 0L
+            }
         }
     }
 

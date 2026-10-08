@@ -36,7 +36,9 @@ fun AddExercisePickerScreen(
     onBack: () -> Unit,
     onExerciseClick: (Exercise) -> Unit,
     onCreateExercise: (String) -> Unit,
-    onManageExercises: () -> Unit
+    onManageExercises: () -> Unit,
+    onHistoricalExerciseClick:
+        (String) -> Unit
 ) {
     val searchQuery by
     viewModel.searchQuery
@@ -154,7 +156,16 @@ fun AddExercisePickerScreen(
                         .HISTORICAL_ONLY -> {
 
                         HistoricalExerciseRow(
-                            item = item
+                            item = item,
+
+                            onClick = {
+                                onHistoricalExerciseClick(
+                                    item.key
+                                        .removePrefix(
+                                            "historical:"
+                                        )
+                                )
+                            }
                         )
                     }
 
@@ -325,12 +336,16 @@ private fun CurrentExerciseRow(
 
 @Composable
 private fun HistoricalExerciseRow(
-    item: AddExerciseSearchItem
+    item: AddExerciseSearchItem,
+    onClick: () -> Unit
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .clickable(
+                    onClick = onClick
+                )
                 .padding(
                     horizontal = 4.dp,
                     vertical = 14.dp
@@ -349,8 +364,7 @@ private fun HistoricalExerciseRow(
         ) {
 
             Text(
-                text =
-                    item.name,
+                text = item.name,
 
                 style =
                     MaterialTheme
@@ -363,7 +377,7 @@ private fun HistoricalExerciseRow(
 
             Text(
                 text =
-                    "Previously used",
+                    "Previously used · restore history",
 
                 style =
                     MaterialTheme
@@ -377,16 +391,16 @@ private fun HistoricalExerciseRow(
             )
         }
 
-        Text(
-            text =
-                "Previously used",
+        Icon(
+            imageVector =
+                Icons.AutoMirrored
+                    .Filled
+                    .KeyboardArrowRight,
 
-            style =
-                MaterialTheme
-                    .typography
-                    .labelMedium,
+            contentDescription =
+                "Restore exercise",
 
-            color =
+            tint =
                 MaterialTheme
                     .colorScheme
                     .onSurfaceVariant

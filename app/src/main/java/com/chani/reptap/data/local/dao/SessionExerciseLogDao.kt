@@ -12,6 +12,16 @@ data class HistoricalExerciseIdentity(
     val startedAt: Long
 )
 
+data class HistoricalExerciseDefinition(
+    val exerciseHistoryKey: String,
+    val exerciseName: String,
+    val trackingType: com.chani.reptap.data.local.entity.ExerciseTrackingType,
+    val isBodyweight: Boolean,
+    val isPerSide: Boolean,
+    val primaryMuscleHistoryKey: String,
+    val primaryMuscleName: String
+)
+
 @Dao
 interface SessionExerciseLogDao {
 
@@ -61,4 +71,40 @@ interface SessionExerciseLogDao {
     )
     fun observeHistoricalExerciseIdentities():
             Flow<List<HistoricalExerciseIdentity>>
+
+    @Query(
+        """
+    SELECT
+        sel.exerciseHistoryKey AS exerciseHistoryKey,
+        sel.exerciseNameSnapshot AS exerciseName,
+        sel.trackingTypeSnapshot AS trackingType,
+        sel.isBodyweightSnapshot AS isBodyweight,
+        sel.isPerSideSnapshot AS isPerSide,
+        sel.primaryMuscleHistoryKey AS primaryMuscleHistoryKey,
+        sel.primaryMuscleNameSnapshot AS primaryMuscleName
+
+    FROM session_exercise_logs sel
+
+    INNER JOIN session_logs s
+        ON sel.sessionLogId = s.id
+
+    WHERE sel.exerciseHistoryKey = :historyKey
+      AND s.status = 'COMPLETED'
+
+      AND EXISTS (
+          SELECT 1
+          FROM set_logs sl
+          WHERE sl.sessionExerciseLogId = sel.id
+      )
+
+    ORDER BY
+        s.startedAt DESC,
+        sel.id DESC
+
+    LIMIT 1
+    """
+    )
+    suspend fun getLatestHistoricalExerciseDefinition(
+        historyKey: String
+    ): HistoricalExerciseDefinition?
 }

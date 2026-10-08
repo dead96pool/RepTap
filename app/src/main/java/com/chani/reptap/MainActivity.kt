@@ -50,6 +50,8 @@ import com.chani.reptap.ui.builder.ExerciseLibraryScreen
 import com.chani.reptap.ui.builder.ExerciseLibraryViewModel
 import com.chani.reptap.ui.builder.EditExerciseScreen
 import com.chani.reptap.ui.builder.EditExerciseViewModel
+import com.chani.reptap.ui.builder.RestoreExerciseScreen
+import com.chani.reptap.ui.builder.RestoreExerciseViewModel
 import android.net.Uri
 
 class MainActivity : ComponentActivity() {
@@ -312,6 +314,17 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(
                                         "exercise_library"
                                     )
+                                },
+
+                                onHistoricalExerciseClick = {
+                                        historyKey ->
+
+                                    navController.navigate(
+                                        "restore_exercise/" +
+                                                Uri.encode(
+                                                    historyKey
+                                                )
+                                    )
                                 }
                             )
                         }
@@ -352,6 +365,66 @@ class MainActivity : ComponentActivity() {
                                         "edit_exercise/" +
                                                 exercise.id
                                     )
+                                }
+                            )
+                        }
+
+                        composable(
+                            route =
+                                "restore_exercise/{historyKey}",
+
+                            arguments =
+                                listOf(
+                                    navArgument(
+                                        "historyKey"
+                                    ) {
+                                        type =
+                                            NavType.StringType
+                                    }
+                                )
+                        ) { backStackEntry ->
+
+                            val historyKey =
+                                backStackEntry
+                                    .arguments
+                                    ?.getString(
+                                        "historyKey"
+                                    )
+                                    ?: ""
+
+                            val restoreViewModel:
+                                    RestoreExerciseViewModel =
+                                viewModel(
+                                    key =
+                                        "restore_exercise_" +
+                                                historyKey,
+
+                                    factory =
+                                        viewModelFactory {
+                                            initializer {
+                                                RestoreExerciseViewModel(
+                                                    repository =
+                                                        workoutRepository,
+
+                                                    historyKey =
+                                                        historyKey
+                                                )
+                                            }
+                                        }
+                                )
+
+                            RestoreExerciseScreen(
+                                viewModel =
+                                    restoreViewModel,
+
+                                onBack = {
+                                    navController
+                                        .popBackStack()
+                                },
+
+                                onRestored = {
+                                    navController
+                                        .popBackStack()
                                 }
                             )
                         }

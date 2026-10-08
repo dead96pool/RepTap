@@ -25,6 +25,18 @@ interface MuscleGroupDao {
         id: Long
     ): MuscleGroup?
 
+    @Query(
+        """
+    SELECT *
+    FROM muscle_groups
+    WHERE historyKey = :historyKey
+    LIMIT 1
+    """
+    )
+    suspend fun getByHistoryKey(
+        historyKey: String
+    ): MuscleGroup?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(
         groups: List<MuscleGroup>
