@@ -7,12 +7,13 @@
 
 - move the add exercise to top bar + reorder (perhaps better polished options)
 - side burger menu panel with settings and workout editor
-- adding completely new exercises with a dropdown text for already present exercises
-- maybe match and organise exercises with names
+
 - importing workouts into the workout builder
 - editing workout freely without changing select workout day
 - long pressing in edit workout screen to give option to delete/move maybe
-
+- option to export history
+- option to multiselect to delete workouts
+- better rest day handling instead of adding a "Rest workout"
 - better way to represent the rest days. dont need to have them as workouts
 
 - editing charts to be smart, add weight over time if the workout ever was with weights
@@ -22,97 +23,6 @@
 - add option to input body measurments + detailed stats on growth
 
 - cross/clear all button in the search exercise textbar
-
-
-
-
-| Priority | Feature                                        | Why                                                                                    |
-| -------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **0**    | **Data safety / proper Room migrations**       | Foundation before we change the database                                               |
-| **2**    | **Workout editor / workout builder**           | Biggest improvement to making RepTap a genuine reusable training app                   |
-| **3**    | **History multi-select + Select All + Delete** | Gives you control over your accumulated data                                           |
-| **4**    | **History export**                             | Protects your data and makes RepTap less of a closed database                          |
-| **5**    | **History calendar view**                      | Major usability improvement once history management is solid                           |
-| **6**    | **Better history statistics**                  | Builds naturally on the history/calendar work                                          |
-| **7**    | **Search/filter All Exercises**                | Very useful and relatively easy, but not structurally important yet                    |
-| **8**    | **Muscle-group progress**                      | Valuable progress feature, but I'd build it after the underlying workout/data features |
-
-
-
-
-
-
-====================== Current task ======================
-
-- history/progress model refactoring
-- unique key for exercise matching
-- better ux for adding a new exercise with text field + selection menu under
-
-
-Full implementation roadmap
-1. Introduce permanent Exercise and Muscle identities — Room v12. Add an immutable historyKey: String to Exercise, with a unique index. I also recommend doing the same for MuscleGroup, since we've decided muscle identity should be historically preserved. Built-in exercises/muscles will receive deterministic stable keys; custom exercises created later will get generated UUID-style keys. Room's numeric id remains an internal row ID, while historyKey becomes the logical identity. Update seeding and any affected projections, rebuild with destructive recreation, and verify the existing app still behaves exactly as it does now.
-2. Build the immutable session model — Room v13. Add SessionExerciseLog and its DAO. The entity should snapshot the exercise history key, optional source Exercise ID, exercise name, tracking type, bodyweight/per-side state, muscle history key/name, historical order, sets, reps/duration target, default load, and rest values. sourceExerciseId should be an optional soft reference rather than a foreign key, so deleting the current Exercise can never destroy historical data.
-3. Normalize SetLog around the historical snapshot. Replace the current dependency on WorkoutExercise with sessionExerciseLogId. I still recommend removing the redundant direct sessionLogId from SetLog; its session is unambiguously determined through SessionExerciseLog. The final relationship becomes SessionLog → SessionExerciseLog → SetLog, with cascading deletion only inside that historical chain.
-4. Make session creation atomic and snapshot-backed. startSession() should run in one Room transaction: create the SessionLog, snapshot the workout name, read the current exercise/configuration data, create all SessionExerciseLog rows, and only then expose the session as ready. Active Workout should then operate from those session snapshots rather than continuing to depend on mutable WorkoutExercise configuration. This means even if the current program somehow changes while a workout is underway, that active session remains the workout that was actually started.
-5. Cut Active Workout logging over to SessionExerciseLog. Rep sets continue storing actual reps and nullable actual weight. Timed sets continue storing repsCompleted = 0, actual elapsed duration and nullable load. Pause/Resume behavior, Finish Set thresholds, rest logic and the approved timer UI remain untouched. Only the storage destination changes.
-6. Rewrite History against immutable data. Session summaries, Session Detail exercise names, exercise ordering, reps, duration and weights should all come from SessionLog → SessionExerciseLog → SetLog. The current timestamp-order workaround can disappear because historical orderIndex itself will now be immutable. Workout-name snapshots remain as they are.
-7. Rewrite Progress against logical exercise identity. Progress queries should group sessions by exerciseHistoryKey, not current Exercise.id, workout-exercise ID or exercise name. REPS volume and TIME duration calculations stay the same. Most importantly, the established algorithm remains latest 3 sessions vs previous 3 sessions. We are changing historical identity/storage, not the trend algorithm.
-8. Make historical-only exercises accessible in Progress. This is an important task that emerged from our deletion discussion. The current Progress navigation relies heavily on current numeric Exercise IDs. Eventually that will not work for an exercise whose current Exercise row has been deleted. Progress/All Exercises therefore needs to evolve to use the historyKey as its identity. If a current Exercise exists, show its current name. If it has been deleted, use the most appropriate historical snapshot name and label it as historical/previously used. Exercise Detail should remain accessible with its complete old charts and sets.
-9. Rewrite the fake-data generator. Fake data should generate SessionLog → SessionExerciseLog → SetLog, not historical sets tied to current workout rows. We retain approximately 46 completed sessions, all 27 seeded exercises, improving/declining/flat cases, Side Plank timed data, nullable external load and the exact existing trend behavior. The temporary seed/reset button stays until this refactor has been thoroughly validated.
-10. Run a major immutable-history regression checkpoint. We should explicitly test a normal REPS workout, Side Plank TIME workout, Pause/Resume, targets exceeded beyond threshold, weighted sets, null load, History order, old workout names, Progress charts and 3-vs-3 trends. Then deliberately mutate the current program: rename the workout, rename an exercise, change its target, weight and muscle, reorder it, and confirm that the old session remains exactly as performed.
-11. Remove the temporary WorkoutExercise.isActive architecture — likely Room v14. Once History and Progress no longer depend on WorkoutExercise, delete isActive, inactive/reactivation DAO functions and active-only filtering. Remove from Workout becomes an actual database delete of that WorkoutExercise row.
-12. Allow removal of the final exercise. We have now explicitly decided to remove the current safeguard that requires at least one exercise. Removing the final exercise turns the workout into an empty draft. Home already has the desired model: Start Session is disabled, the automatic cycle skips drafts, drafts consume no cycle/calendar day, but the workout remains editable and manually selectable. We'll update cycle queries from "active exercise count" to ordinary current exercise count.
-13. Implement true Delete Workout. With the historical chain independent, deleting a workout can physically delete the current WorkoutDay and cascade its current WorkoutExercises while leaving SessionLog, SessionExerciseLog and SetLog untouched. At this stage we'll handle slot renumbering, current cycle-state repair, recovery days, drafts, deletion of the currently selected workout, and ensuring the app cannot get stuck in an invalid state.
-14. Implement Custom Exercise CRUD. This is one of the larger tasks you hadn't listed explicitly in your summary, but it is necessary for the new Add Exercise UX. Creating an exercise gives it a new historyKey. Editing its name, muscle, tracking properties, bodyweight or per-side status preserves that same key, while old sessions keep their snapshots. Deleting the current Exercise removes it from the library but does not touch its historical SessionExerciseLogs or Progress. We'll separately decide the exact confirmation behavior if the exercise is still used by current workouts.
-15. Build the unified Add Exercise experience. Replace/evolve the current picker into the search/create/restore flow we discussed. Typing performs case-insensitive partial-name matching across both the current Exercise library and historical-only identities. Matches beginning with the typed text should rank above matches merely containing it. Current exercises can be selected normally; exercises already in this workout appear disabled or clearly marked; deleted historical exercises appear as Previously used; and a genuinely new typed name exposes something like Create "Bayesian Cable Curl".
-16. Implement historical exercise restoration. Selecting Previously used does not create a new logical identity. RepTap retrieves the most recent historical definition, prefills name, muscle, tracking type, bodyweight and per-side values, and lets you edit them before restoring. Saving creates a new current Exercise database row but reuses the old historyKey. The restored exercise then continues the same Progress history seamlessly.
-17. Keep new creation deliberately separate from restoration. Even if the typed name exactly matches an old deleted exercise, RepTap should never silently merge them. Selecting the historical suggestion restores its identity. Explicitly choosing Create new exercise generates a brand-new history key. Names are search text; user choice determines identity.
-18. Finish the unified flow with workout-specific configuration. After choosing an existing exercise, restoring an old one or defining a new one, the same flow proceeds to sets, target reps/time, external load, default weight and rest configuration before adding it to the workout. This preserves the architectural distinction between an Exercise's global definition and a WorkoutExercise's workout-specific prescription, even though the UI feels like one coherent process.
-19. Test deletion → historical Progress → restoration end-to-end. A key final acceptance scenario should be: create custom exercise → train it across several sessions → edit it → remove it from workout → delete it from Exercise Library → verify it remains visible in Progress → search for it from Add Exercise → select Previously used → modify the prefilled definition if desired → restore it → add it to a workout → complete new sessions → confirm old and new sessions appear in the same Progress timeline and 3-vs-3 trend.
-20. Only after these foundations are stable, continue with later enhancements. That includes History management, search/filtering, export/backup, richer statistics, Muscle Progress, navigation cleanup, timezone review, nullable aggregate review, weighted-timed exercise testing, removal of fake-data controls and eventually replacing destructive Room migration with production migrations.
-
-
-
-
-
-====================== Overall plan ======================
-
-Milestone 1 — Protect and improve the workout engine
-
-Proper Room migrations
-Rep vs timed exercise tracking
-Adjustable weight during workouts
-Previous-session/set reference
-
-Milestone 2 — Make workouts configurable
-
-Edit existing workout
-Add/remove/reorder exercises
-Edit sets/reps/time/weight/rest
-Create/duplicate/rename workouts
-Custom exercises
-
-Milestone 3 — Own your history
-
-Multi-select / Select All / Delete
-CSV export
-Full backup/restore
-History calendar
-
-Milestone 4 — Turn the data into insight
-
-Better history statistics
-Muscle-group/training-distribution view
-PR detection
-Training streaks
-Date-range filtering
-
-Milestone 5 — Convenience polish
-
-All Exercises search
-Muscle-group filter
-Notes
-Additional workout-management polish
 
 
 
